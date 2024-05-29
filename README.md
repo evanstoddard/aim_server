@@ -38,6 +38,6 @@ A more complete build doc can be found here: [Build Documentation](docs/building
 TL;DR:
 
 ```c
-mkdir build
+mkdir build && cd build
 cmake .. && make
 ```
