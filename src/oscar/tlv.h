@@ -12,6 +12,7 @@
 #define TLV_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,15 +37,19 @@ struct tlv_t;
  * 
  */
 typedef enum {
-    TLV_TAG_SCREEN_NAME         = 1,
-    TLV_TAG_CLIENT_NAME         = 3,
-    TLV_TAG_LOGIN_COOKIE        = 6,
-    TLV_TAG_MAJOR_VERSION       = 23,
-    TLV_TAG_MINOR_VERSION       = 24,
-    TLV_TAG_POINT_VERSION       = 25,
-    TLV_TAG_BUILD_NUM           = 26,
-    TLV_TAG_MULTICONN_FLAGS     = 74,
-    TLV_TAG_CLIENT_RECONNECT    = 148,
+    TLV_TAG_SCREEN_NAME         = 0x1,
+    TLV_TAG_CLIENT_NAME         = 0x3,
+    TLV_TAG_LOGIN_COOKIE        = 0x6,
+    TLV_TAG_CLIENT_COUNTRY      = 0xE,
+    TLV_TAG_CLIENT_LANG         = 0xF,
+    TLV_TAG_DIST_NUMBER         = 0x14,
+    TLV_TAG_CLIENT_ID           = 0x16,
+    TLV_TAG_VERSION_MAJOR       = 0x17,
+    TLV_TAG_VERSION_MINOR       = 0x18,
+    TLV_TAG_VERSION_LESSER      = 0x19,
+    TLV_TAG_BUILD_NUM           = 0x1A,
+    TLV_TAG_SSI_FLAG            = 0x4A,
+    TLV_TAG_CLIENT_RECONNECT    = 0x148,
 } tlv_tag_t;
 
 /**
@@ -62,12 +67,104 @@ typedef struct tlv_header_t {
  */
 typedef struct tlv_t {
     tlv_header_t header;
-    void *data;
+    void *payload;
 } tlv_t;
 
 /*****************************************************************************
- * Function Prototypes
+ * Fixed Size TLV Payload Definitions
  *****************************************************************************/
+
+/**
+ * @brief Client ID TLV
+ * 
+ */
+typedef struct tlv_client_id_f_t {
+    uint16_t client_id;
+} __attribute__((packed)) tlv_client_id_f_t;
+
+/**
+ * @brief Client Version Major TLV
+ * 
+ */
+typedef struct tlv_client_version_major_f_t {
+    uint16_t version_major;
+} __attribute__((packed)) tlv_client_version_major_f_t;
+
+/**
+ * @brief Client Version Minor TLV
+ * 
+ */
+typedef struct tlv_client_version_minor_f_t {
+    uint16_t version_minor;
+} __attribute__((packed)) tlv_client_version_minor_f_t;
+
+/**
+ * @brief Client Version Lesser TLV
+ * 
+ */
+typedef struct tlv_client_version_lesser_f_t {
+    uint16_t version_lesser;
+} __attribute__((packed)) tlv_client_version_lesser_f_t;
+
+/**
+ * @brief Client Build Number TLV
+ * 
+ */
+typedef struct tlv_client_build_number_f_t {
+    uint16_t build_number;
+} __attribute__((packed)) tlv_client_build_number_f_t;
+
+/**
+ * @brief Client Distribution Number TLV
+ * 
+ */
+typedef struct tlv_client_dist_number_f_t {
+    uint16_t dist_number;
+} __attribute__((packed)) tlv_client_dist_number_f_t;
+
+/**
+ * @brief Client Language TLV
+ * 
+ */
+typedef struct tlv_client_language_f_t {
+    char language[2];
+} __attribute__((packed)) tlv_client_language_f_t;
+
+/**
+ * @brief Client Country TLV
+ * 
+ */
+typedef struct tlv_client_country_f_t {
+    char country[2];
+} __attribute__((packed)) tlv_client_country_f_t;
+
+/**
+ * @brief Client SSI Flag TLV
+ * 
+ */
+typedef struct tlv_client_ssi_flag_f_t {
+    uint8_t ssi_flag;
+} __attribute__((packed)) tlv_client_ssi_flag_f_t;
+
+/*****************************************************************************
+ * Dynamic Size TLV Payload Definitions
+ *****************************************************************************/
+
+/**
+ * @brief Screen name TLV
+ * 
+ */
+typedef struct tlv_screen_name_d_t {
+    char *screen_name;
+} tlv_screen_name_d_t;
+
+/**
+ * @brief Client ID String TLV
+ * 
+ */
+typedef struct tlv_client_id_str_d_t {
+    char *client_id_str;
+} tlv_client_id_str_d_t;
 
 #ifdef __cplusplus
 }

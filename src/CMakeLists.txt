@@ -18,6 +18,7 @@ set(AIM_SERVER_SOURCES
     oscar/flap_encoder.c
     oscar/snac_encoder.c
     oscar/tlv_encoder.c
+    model/client.c
 )
 
 # Include Paths

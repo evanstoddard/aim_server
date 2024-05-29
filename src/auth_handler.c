@@ -21,6 +21,8 @@
 #include "oscar/flap_encoder.h"
 #include "oscar/snac_encoder.h"
 
+#include "model/client.h"
+
 #include <stddef.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
@@ -73,6 +75,14 @@ static void prv_auth_handler_handle_data_frame(connection_t *conn, frame_t *fram
 static void prv_auth_handler_handle_bucp_foodgroup(connection_t *conn, frame_t *frame);
 
 /**
+ * @brief Handle BUCP login request
+ * 
+ * @param conn Connection
+ * @param frame Frame
+ */
+static void prv_auth_handler_handle_bucp_login_request(connection_t *conn, frame_t *frame);
+
+/**
  * @brief Handle BUCP challenge request
  * 
  * @param conn Connection
@@ -86,6 +96,7 @@ static void prv_auth_handler_handle_bucp_challenge_request(connection_t *conn, f
  * @param conn Connection
  */
 static void prv_auth_handler_send_bucp_challenge_response(connection_t *conn);
+
 
 /*****************************************************************************
  * Public Functions
@@ -313,8 +324,7 @@ static void prv_auth_handler_handle_bucp_foodgroup(connection_t *conn, frame_t *
         LOG_WARN("BUCP_ERR handler not implemented.");
         break;
     case BUCP_LOGIN_REQUEST:
-        // TODO: Implement BUCP_LOGIN_REQUEST Handler
-        LOG_WARN("BUCP_LOGIN_REQUEST handler not implemented.");
+        prv_auth_handler_handle_bucp_login_request(conn, frame);
         break;
     case BUCP_REGISTER_REQUEST:
         // TODO: Implement BUCP_REGISTER_REQUEST Handler
@@ -360,6 +370,95 @@ static void prv_auth_handler_handle_bucp_foodgroup(connection_t *conn, frame_t *
     }
 }
 
+static void prv_auth_handler_handle_bucp_login_request(connection_t *conn, frame_t *frame) {
+    uint8_t *blob = frame->snac_blob;
+    ssize_t blob_size = frame->flap.payload_length - sizeof(snac_t);
+    ssize_t idx = 0;
+    
+    client_t *client = client_init();
+    
+    if (client == NULL) {
+        LOG_ERR("Unable to create client. Out of memory?");
+        connection_close(conn);
+        return;
+    }
+    
+    // Iterate throut TLVs
+    while (idx < blob_size) {
+        ssize_t remaining_bytes = blob_size - idx;
+        
+        uint8_t *ptr = &blob[idx];
+        tlv_t tlv;
+        
+        bool ret = tlv_decode(&tlv, ptr, remaining_bytes);
+
+        if (!ret) {
+            LOG_ERR("Failed to parse TLV.");
+            connection_close(conn);
+            return;
+        }
+        
+        switch (tlv.header.tag) {
+        case TLV_TAG_VERSION_MAJOR: {
+            tlv_client_version_major_f_t *version = (tlv_client_version_major_f_t*)tlv.payload;
+            client->version_major = version->version_major;
+            break;
+        }
+        case TLV_TAG_VERSION_MINOR: {
+            tlv_client_version_minor_f_t *version = (tlv_client_version_minor_f_t*)tlv.payload;
+            client->version_minor = version->version_minor;
+            break;
+        }
+        case TLV_TAG_VERSION_LESSER: {
+            tlv_client_version_lesser_f_t *version = (tlv_client_version_lesser_f_t*)tlv.payload;
+            client->version_lesser = version->version_lesser;
+            break;
+        }
+        case TLV_TAG_BUILD_NUM: {
+            tlv_client_build_number_f_t *build = (tlv_client_build_number_f_t*)tlv.payload;
+            client->version_build = build->build_number;
+            break;
+        }
+        case TLV_TAG_CLIENT_ID: {
+            tlv_client_id_f_t *client_id = (tlv_client_id_f_t*)tlv.payload;
+            client->client_id = client_id->client_id;
+            break;
+        }
+        case TLV_TAG_CLIENT_LANG: {
+            tlv_client_language_f_t *lang = (tlv_client_language_f_t*)tlv.payload;
+            memcpy(client->lang, lang->language, 2);
+            break;
+        }
+        case TLV_TAG_CLIENT_COUNTRY: {
+            tlv_client_country_f_t *country = (tlv_client_country_f_t*)tlv.payload;
+            memcpy(client->country, country->country, 2);
+            break;
+        }
+        case TLV_TAG_SSI_FLAG: {
+            tlv_client_ssi_flag_f_t *payload = (tlv_client_ssi_flag_f_t*)tlv.payload;
+            client->ssi = payload->ssi_flag;
+            break;
+        }
+        case TLV_TAG_SCREEN_NAME: {
+            client->screen_name = malloc(tlv.header.length + 1);
+            memcpy(client->screen_name, tlv.payload, tlv.header.length);
+            break;
+        }
+        case TLV_TAG_CLIENT_NAME: {
+            client->client_id_str = malloc(tlv.header.length + 1);
+            memcpy(client->client_id_str, tlv.payload, tlv.header.length);
+            break;
+        }
+        default:
+            break;
+        }
+        
+        idx += sizeof(tlv_header_t) + tlv.header.length;
+    }
+    
+    client_log_info(client);
+}
+
 static void prv_auth_handler_handle_bucp_challenge_request(connection_t *conn, frame_t *frame) {
     uint8_t *blob = frame->snac_blob;
     ssize_t blob_size = frame->flap.payload_length - sizeof(snac_t);
@@ -388,7 +487,7 @@ static void prv_auth_handler_handle_bucp_challenge_request(connection_t *conn, f
         
         switch(tlv.header.tag) {
         case TLV_TAG_SCREEN_NAME:
-            screenname = tlv.data;
+            screenname = tlv.payload;
             screenname_size = tlv.header.length;
             break;
         default:
@@ -404,8 +503,7 @@ static void prv_auth_handler_handle_bucp_challenge_request(connection_t *conn, f
     
     // Copy screenname to connection
     memcpy(conn->screenname, screenname, screenname_size);
-    
-    LOG_INFO("Received Challenge Request from %s", conn->screenname);
+
     prv_auth_handler_send_bucp_challenge_response(conn);
     
 }
