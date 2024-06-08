@@ -39,15 +39,18 @@ struct tlv_t;
 typedef enum {
     TLV_TAG_SCREEN_NAME         = 0x1,
     TLV_TAG_CLIENT_NAME         = 0x3,
+    TLV_TAG_BOS_ADDRESS         = 0x5,
     TLV_TAG_LOGIN_COOKIE        = 0x6,
     TLV_TAG_CLIENT_COUNTRY      = 0xE,
     TLV_TAG_CLIENT_LANG         = 0xF,
+    TLV_TAG_CLIENT_EMAIL_ADDR   = 0x11,
     TLV_TAG_DIST_NUMBER         = 0x14,
     TLV_TAG_CLIENT_ID           = 0x16,
     TLV_TAG_VERSION_MAJOR       = 0x17,
     TLV_TAG_VERSION_MINOR       = 0x18,
     TLV_TAG_VERSION_LESSER      = 0x19,
     TLV_TAG_BUILD_NUM           = 0x1A,
+    TLV_TAG_MD5_HASHED_PASSWORD = 0x25,
     TLV_TAG_SSI_FLAG            = 0x4A,
     TLV_TAG_CLIENT_RECONNECT    = 0x148,
 } tlv_tag_t;
@@ -165,6 +168,14 @@ typedef struct tlv_screen_name_d_t {
 typedef struct tlv_client_id_str_d_t {
     char *client_id_str;
 } tlv_client_id_str_d_t;
+
+/**
+ * @brief MD5 Hashed Password
+ * 
+ */
+typedef struct tlv_md5_hashed_password_d_t {
+    char *hashed_password;
+} tlv_md5_hashed_password_d_t;
 
 #ifdef __cplusplus
 }

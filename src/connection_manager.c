@@ -9,13 +9,17 @@
  */
 
 #include <poll.h>
+#include <unistd.h>
+#include <sys/socket.h>
+
 #include "connection_manager.h"
 #include "connection.h"
 #include "socket_server/socket_server.h"
-#include <unistd.h>
-#include <sys/socket.h>
+
+#include "auth_server.h"
+#include "bos_server.h"
+
 #include "logging.h"
-#include "auth_handler.h"
 
 /*****************************************************************************
  * Definitions
@@ -28,6 +32,8 @@
 
 #define CONNECTION_MANAGER_AUTH_IDX 0U
 #define CONNECTION_MANAGER_BOSS_IDX 1U
+
+#define CONNECTION_MANAGER_SERVER_FD_COUNT (CONNECTION_MANAGER_BOSS_IDX + 1)
 
 #define CONNECTION_MANAGER_POLL_TIMEOUT INT32_MAX
 
@@ -78,16 +84,11 @@ static void prv_connection_manager_service_server_fds(void);
 static void prv_connection_manager_service_client_fds(void);
 
 /**
- * @brief Handle new connection to auth socket
+ * @brief Handle new client
  * 
+ * @param fd_idx Index of FD
  */
-static void prv_connection_manager_handle_new_auth_connection(void);
-
-/**
- * @brief Handle new connection to BOSS socket
- * 
- */
-static void prv_connection_manager_handle_new_boss_connection(void);
+static void prv_connection_manager_handle_new_client(uint32_t fd_idx);
 
 /**
  * @brief Callback called when connection closed
@@ -192,8 +193,6 @@ void prv_connection_manager_on_connection_closed(connection_t *connection) {
     
     // Deinit client
     connection_deinit(connection);
-    
-    
 }
 
 static void prv_connection_manager_polling_loop(void) {
@@ -215,31 +214,30 @@ static void prv_connection_manager_polling_loop(void) {
 }
 
 static void prv_connection_manager_service_server_fds(void) {
-    if (prv_inst.pollfds[CONNECTION_MANAGER_AUTH_IDX].revents & POLLIN) {
-        prv_connection_manager_handle_new_auth_connection();
-    }
-    
-    if (prv_inst.pollfds[CONNECTION_MANAGER_BOSS_IDX].revents & POLLIN) {
-        prv_connection_manager_handle_new_boss_connection();
+    for (uint32_t i = 0; i < CONNECTION_MANAGER_SERVER_FD_COUNT; i++) {
+        if (prv_inst.pollfds[i].revents & POLLIN) {
+            prv_connection_manager_handle_new_client(i);
+        }
     }
 }
 
 static void prv_connection_manager_service_client_fds(void) {
     for (int i = 2; i < CONNECTION_MANAGER_MAX_TOTAL_CONNECTIONS + 2; i++) {
+        connection_t *conn = prv_inst.connections[i - 2];
+        
         if (
             (prv_inst.pollfds[i].fd > 0) && 
             (prv_inst.pollfds[i].revents & POLLIN)
         ) {
-            connection_handle_new_data(prv_inst.connections[i - 2]);
+            conn->callbacks.on_event(conn);
         }
     }
 }
 
-// TODO: Refactor the following two functions into one.
-
-static void prv_connection_manager_handle_new_auth_connection(void) {
+static void prv_connection_manager_handle_new_client(uint32_t fd_idx) {
+    int server_fd = prv_inst.pollfds[fd_idx].fd;
     int client_fd = accept(
-        prv_inst.auth_socket_server.socket_fd, 
+        server_fd, 
         NULL, 
         NULL
     );
@@ -258,7 +256,7 @@ static void prv_connection_manager_handle_new_auth_connection(void) {
     }
     
     // Create new connection instance
-    connection_t *conn = connection_init(client_fd, CONNECTION_TYPE_AUTH);
+    connection_t *conn = connection_init(client_fd);
     
     if (conn == NULL) {
         LOG_ERR("Unable to create connection. Out of memory?");
@@ -285,57 +283,15 @@ static void prv_connection_manager_handle_new_auth_connection(void) {
         break;
     }
     
-    auth_handler_handle_new_connection(conn);
-    LOG_INFO("Connection added to auth socket.");
-}
-
-static void prv_connection_manager_handle_new_boss_connection(void) {
-    int client_fd = accept(
-        prv_inst.boss_socket_server.socket_fd, 
-        NULL, 
-        NULL
-    );
-    
-    // Something went wrong accepting client.
-    if (client_fd == -1) {
-        LOG_ERR("Failed to connect to accept client socket.");
-        return;
-    }
-    
-    // Check if we have enough space for new client
-    if ((prv_inst.active_fds - 2) == CONNECTION_MANAGER_MAX_TOTAL_CONNECTIONS) {
-        LOG_WARN("No room at the Inn :/");
-        close(client_fd);
-        return;
-    }
-    
-    // Create new connection instance
-    connection_t *conn = connection_init(client_fd, CONNECTION_TYPE_BOSS);
-    
-    if (conn == NULL) {
-        LOG_ERR("Unable to create connection. Out of memory?");
-        close(client_fd);
-        return;
-    }
-    
-    // Set on closed callback
-    conn->callbacks.connection_closed = prv_connection_manager_on_connection_closed;
-    
-    // Add socket fd to polling list and add
-    for (int i = 2; i < CONNECTION_MANAGER_MAX_TOTAL_CONNECTIONS + 2; i++) {
-        // Skip if slot is already used
-        if (prv_inst.pollfds[i].fd != 0) {
-            continue;
-        }
-        
-        prv_inst.pollfds[i].fd = client_fd;
-        prv_inst.pollfds[i].events = POLLIN | POLLPRI; 
-        
-        prv_inst.connections[i - 2] = conn;
-        prv_inst.active_fds++;
-            
+    switch (fd_idx) {
+    case CONNECTION_MANAGER_AUTH_IDX:
+        auth_server_handle_new_connection(conn);
+        break;
+    case CONNECTION_MANAGER_BOSS_IDX:
+        bos_server_handle_new_connection(conn);
+        break;
+    default:
+        connection_close(conn);
         break;
     }
-    
-    LOG_INFO("Connection added to BOSS socket.");
 }

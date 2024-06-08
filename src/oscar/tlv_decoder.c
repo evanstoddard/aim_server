@@ -164,7 +164,6 @@ static void prv_tlv_decode_payload(uint16_t id, void *buffer) {
     case TLV_TAG_DIST_NUMBER:
         prv_tlv_decode_client_dist_number(buffer);
         break;
-        break;
     default:
         break;
     }

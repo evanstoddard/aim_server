@@ -14,6 +14,7 @@
 #include "tlv.h"
 
 #include <stdint.h>
+#include <unistd.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,18 +28,42 @@ extern "C" {
  * Structs, Unions, Enums, & Typedefs
  *****************************************************************************/
 
-/**
- * @brief Encode TLV Header
- * 
- * @param tag Tag ID
- * @param length Length of payload
- * @return tlv_header_t 
- */
-tlv_header_t tlv_encode_header(uint16_t tag, uint16_t length);
-
 /*****************************************************************************
  * Function Prototypes
  *****************************************************************************/
+
+/**
+ * @brief Encode screenname TLV
+ * 
+ * @param tlv Pointer to TLV struct
+ * @param screen_name Screenname
+ * @return ssize_t Size of final payload
+ */
+ssize_t tlv_encode_screen_name(tlv_t *tlv, char *screen_name);
+
+/**
+ * @brief 
+ * 
+ * @param tlv 
+ * @param bos_address 
+ * @return ssize_t 
+ */
+ssize_t tlv_encode_bos_address(tlv_t *tlv, char *bos_address);
+
+/**
+ * @brief 
+ * 
+ * @param tlv 
+ * @param login_cookie 
+ * @return ssize_t 
+ */
+ssize_t tlv_encode_login_cookie(tlv_t *tlv, char *login_cookie);
+
+/**
+ * @brief 
+ * 
+ */
+ssize_t tlv_encode_email_address(tlv_t *tlv, char *email_address);
 
 #ifdef __cplusplus
 }

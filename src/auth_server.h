@@ -3,13 +3,13 @@
  */
 
 /**
- * @file auth_handler.h
+ * @file auth_server.h
  * @author Evan Stoddard
- * @brief Handlers for auth requests
+ * @brief Auth server implementation
  */
 
-#ifndef AUTH_HANDLER_H_
-#define AUTH_HANDLER_H_
+#ifndef AUTH_SERVER_H_
+#define AUTH_SERVER_H_
 
 #include "connection.h"
 
@@ -30,20 +30,20 @@ extern "C" {
  *****************************************************************************/
 
 /**
- * @brief Handle new connection to auth socket
+ * @brief Handle new connection to auth server
  * 
  * @param conn Connection
  */
-void auth_handler_handle_new_connection(connection_t *conn);
+void auth_server_handle_new_connection(connection_t *conn);
 
 /**
- * @brief Receive data from connection
+ * @brief Handle event from connection
  * 
  * @param conn Connection
  */
-void auth_handler_connection_receive(connection_t *conn);
+void auth_server_handle_event(connection_t *conn);
 
 #ifdef __cplusplus
 }
 #endif
-#endif /* AUTH_HANDLER_H_ */
+#endif /* AUTH_SERVER_H_ */
