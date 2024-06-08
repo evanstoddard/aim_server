@@ -15,7 +15,6 @@
 #include "connection_manager.h"
 #include <stdlib.h>
 #include <string.h>
-#include "auth_handler.h"
 
 /*****************************************************************************
  * Definitions
@@ -40,7 +39,7 @@ static inline void prv_connection_call_on_closed_callback(connection_t *conn);
  * Functions
  *****************************************************************************/
 
-connection_t* connection_init(int socket, connection_type_t type) {
+connection_t* connection_init(int socket) {
     // Allocate memory for new connection
     connection_t *conn = malloc(sizeof(connection_t));
     
@@ -51,7 +50,6 @@ connection_t* connection_init(int socket, connection_type_t type) {
     memset(conn, 0, sizeof(connection_t));
     
     conn->socket = socket;
-    conn->type = type;
     
     return conn;
 }
@@ -62,6 +60,11 @@ void connection_deinit(connection_t *conn) {
     }
     
     LOG_DEBUG("Deinitializing connection...");
+    
+    if (conn->client) {
+        client_deinit(conn->client);
+    }
+    
     free(conn);
 }
 
@@ -83,16 +86,6 @@ ssize_t connection_write(connection_t *conn, void *buffer, ssize_t size) {
     }
     
     return written_bytes;
-}
-
-void connection_handle_new_data(connection_t *conn) {
-    if (conn == NULL) {
-        return;
-    }
-    
-    if (conn->type == CONNECTION_TYPE_AUTH) {
-        auth_handler_connection_receive(conn);
-    }
 }
 
 void connection_close(connection_t *conn) {

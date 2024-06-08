@@ -13,6 +13,7 @@
 
 #include <stdint.h>
 #include <unistd.h>
+#include "model/client.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,22 +30,12 @@ extern "C" {
 struct connection_t;
 
 /**
- * @brief Defines what type of connection socket is
- * 
- */
-typedef enum {
-    CONNECTION_TYPE_NONE,
-    CONNECTION_TYPE_AUTH,
-    CONNECTION_TYPE_BOSS,
-    CONNECTION_TYPE_UNKNOWN
-} connection_type_t;
-
-/**
  * @brief Connection callbacks typedef
  * 
  */
 typedef struct connection_callbacks_t {
     void(*connection_closed)(struct connection_t *conn);
+    void(*on_event)(struct connection_t *conn);
 } connection_callbacks_t;
 
 /**
@@ -52,11 +43,11 @@ typedef struct connection_callbacks_t {
  * 
  */
 typedef struct connection_t {
-    connection_type_t type;
     int socket;
     uint16_t last_inbound_seq_num;
     uint16_t last_outbound_seq_num;
     connection_callbacks_t callbacks;
+    client_t *client;
     char screenname[20];
 } connection_t;
 
@@ -72,10 +63,9 @@ typedef struct connection_t {
  * @brief Create new connection from socket and socket type
  * 
  * @param socket Socket file descriptor
- * @param type Type of socket
  * @return connection_t* Pointer to newly created connection
  */
-connection_t* connection_init(int socket, connection_type_t type);
+connection_t* connection_init(int socket);
 
 /**
  * @brief Deinitialize connection
@@ -83,12 +73,6 @@ connection_t* connection_init(int socket, connection_type_t type);
  * @param conn Connection to deinitialize
  */
 void connection_deinit(connection_t *conn);
-
-/**
- * @brief Handle new data
- * 
- */
-void connection_handle_new_data(connection_t *conn);
 
 /**
  * @brief Read from socket and automatically handle socket errors/closures

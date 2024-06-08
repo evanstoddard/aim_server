@@ -11,14 +11,17 @@ set(AIM_SERVER_SOURCES
     socket_server/socket_server.c
     connection_manager.c
     connection.c
-    auth_handler.c
+    auth_server.c
+    bos_server.c
     oscar/flap_decoder.c
     oscar/snac_decoder.c
     oscar/tlv_decoder.c
+    oscar/tlv_encoder.c
     oscar/flap_encoder.c
     oscar/snac_encoder.c
     oscar/tlv_encoder.c
     model/client.c
+    handlers/bucp.c
 )
 
 # Include Paths
