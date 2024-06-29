@@ -99,3 +99,23 @@ ssize_t tlv_encode_login_cookie(tlv_t *tlv, char *login_cookie) {
     
     return total_size;
 }
+
+tlv_uint16_t tlv_uint16_encode(uint16_t id, uint16_t val) {
+    tlv_uint16_t tlv = {
+        .header.length = htons(sizeof(uint16_t)),
+        .header.tag = htons(id),
+        .val = htons(val)
+    };
+    
+    return tlv;
+}
+
+tlv_uint32_t tlv_uint32_encode(uint16_t id, uint32_t val) {
+    tlv_uint32_t tlv = {
+        .header.length = htons(sizeof(uint16_t)),
+        .header.tag = htons(id),
+        .val = htonl(val)
+    };
+    
+    return tlv;
+}

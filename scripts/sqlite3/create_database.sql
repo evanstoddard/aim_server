@@ -1,0 +1,11 @@
+CREATE TABLE users(
+    ID INT PRIMARY KEY NOT NULL,
+    uin TEXT NOT NULL,
+    email TEXT NOT NULL
+);
+
+CREATE TABLE  challenge(
+    ID INT PRIMARY KEY NOT NULL,
+    USER_ID INT KEY NOT NULL,
+    
+)

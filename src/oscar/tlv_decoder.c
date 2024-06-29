@@ -101,6 +101,7 @@ static void prv_tlv_decode_client_ssi_flag(void *buffer);
  * Functions
  *****************************************************************************/
 
+// TODO: This only handles common, fixed size TLVs. Refactor to make more generic
 bool tlv_decode(tlv_t *tlv, void *buffer, ssize_t buffer_size) {
     
     if (tlv == NULL) {
@@ -115,9 +116,7 @@ bool tlv_decode(tlv_t *tlv, void *buffer, ssize_t buffer_size) {
         return false;
     }
     
-    if (tlv != buffer) {
-        memcpy(tlv, buffer, sizeof(tlv_t));
-    }
+    memcpy(&tlv->header, buffer, sizeof(tlv_header_t));
     
     tlv->header.length = ntohs(tlv->header.length);
     tlv->header.tag = ntohs(tlv->header.tag);

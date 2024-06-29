@@ -23,6 +23,8 @@
 
 #include "model/client.h"
 
+#include "memory/buffer.h"
+
 #include <stddef.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
@@ -159,6 +161,15 @@ static void prv_bucp_handle_login_request(connection_t *conn, frame_t *frame) {
         }
         case TLV_TAG_SCREEN_NAME: {
             conn->client->screen_name = malloc(tlv.header.length + 1);
+            
+            if (conn->client->screen_name == NULL) {
+                LOG_ERR("Unable to malloc space for screen name. Out of memory?");
+                connection_close(conn);
+                return;
+            }
+            
+            memset(conn->client->screen_name, 0, (tlv.header.length + 1));
+            
             memcpy(conn->client->screen_name, tlv.payload, tlv.header.length);
             break;
         }
@@ -170,6 +181,7 @@ static void prv_bucp_handle_login_request(connection_t *conn, frame_t *frame) {
         case TLV_TAG_MD5_HASHED_PASSWORD: {
             uint8_t *md5_password = malloc(tlv.header.length);
             memcpy(md5_password, tlv.payload, tlv.header.length);
+            free(md5_password);
             break;
         }
         default:
@@ -237,10 +249,10 @@ static void prv_bucp_handle_challenge_request(connection_t *conn, frame_t *frame
 
 static void prv_bucp_send_challenge_response(connection_t *conn) {
     uint16_t payload_length = sizeof(snac_t);
-    ssize_t buffer_size = sizeof(flap_t);
+    size_t buffer_size = sizeof(flap_t);
     
     // Encode SNAC
-    snac_t snac = snac_encode(SNAC_FOOTGROUP_ID_BUCP, BUCP_CHALLENGE_RESPONSE, 0, 0);
+    snac_t snac = snac_encode(SNAC_FOODGROUP_ID_BUCP, BUCP_CHALLENGE_RESPONSE, 0, 0);
     
     // TODO: Fetch actual salt and encode in frame.
     char challenge[] = "abcdefghijklmnopqrstuvwxyzabcdefabcdefghijklmnopqrstuvwxyzabcdef";
@@ -258,30 +270,23 @@ static void prv_bucp_send_challenge_response(connection_t *conn) {
     buffer_size += payload_length;
     
     // Create outbound buffer
-    ssize_t offset = 0;
-    uint8_t *buffer = malloc(buffer_size);
-    
+    buffer_t buffer = buffer_init();
+
     if (buffer == NULL) {
         LOG_ERR("Unable to allocate buffer.  Out of memory?");
         connection_close(conn);
     }
     
-    memcpy(&buffer[offset], &flap, sizeof(flap_t));
-    offset += sizeof(flap_t);
+    buffer_write(buffer, &flap, sizeof(flap_t));
+    buffer_write(buffer, &snac, sizeof(snac_t));
+    buffer_write(buffer, &challenge_size_swapped, sizeof(uint16_t));
+    buffer_write(buffer, &challenge, challenge_size);
     
-    memcpy(&buffer[offset], &snac, sizeof(snac_t));
-    offset += sizeof(snac_t);
-    
-    memcpy(&buffer[offset], &challenge_size_swapped, sizeof(uint16_t));
-    offset += sizeof(uint16_t);
-    
-    memcpy(&buffer[offset], challenge, challenge_size);
-    
-    if (connection_write(conn, buffer, buffer_size) != buffer_size) {
+    if (connection_write(conn, buffer_ptr(buffer), buffer_size) != buffer_size) {
         LOG_ERR("Failed to write to connection.");
     }
     
-    free(buffer);
+    buffer_deinit(buffer);
 }
 
 static void prv_bucp_send_login_response_success(connection_t *conn) {
@@ -289,7 +294,7 @@ static void prv_bucp_send_login_response_success(connection_t *conn) {
     ssize_t buffer_size = sizeof(flap_t);
     
     // Encode SNAC
-    snac_t snac = snac_encode(SNAC_FOOTGROUP_ID_BUCP, BUCP_LOGIN_RESPONSE, 0, 0);
+    snac_t snac = snac_encode(SNAC_FOODGROUP_ID_BUCP, BUCP_LOGIN_RESPONSE, 0, 0);
     
     // Create TLVs
     tlv_t screen_name_tlv;
@@ -302,8 +307,9 @@ static void prv_bucp_send_login_response_success(connection_t *conn) {
     ssize_t bos_address_payload_size = bos_address_tlv_size - sizeof(tlv_header_t);
     payload_length += bos_address_tlv_size;
     
+    // TODO: Create real cookie and base64 encode.
     tlv_t login_cookie_tlv;
-    ssize_t login_cookie_tlv_size = tlv_encode_login_cookie(&login_cookie_tlv, "cookie");
+    ssize_t login_cookie_tlv_size = tlv_encode_login_cookie(&login_cookie_tlv, conn->client->screen_name);
     ssize_t login_cookie_payload_size = login_cookie_tlv_size - sizeof(tlv_header_t);
     payload_length += login_cookie_tlv_size;
 
@@ -320,49 +326,29 @@ static void prv_bucp_send_login_response_success(connection_t *conn) {
     buffer_size += payload_length;
     
     // Create outbound buffer
-    ssize_t offset = 0;
-    uint8_t *buffer = malloc(buffer_size);
+    buffer_t buffer = buffer_init();
     
     if (buffer == NULL) {
         LOG_ERR("Unable to allocate buffer.  Out of memory?");
         connection_close(conn);
     }
     
-    memcpy(&buffer[offset], &flap, sizeof(flap_t));
-    offset += sizeof(flap_t);
+    buffer_write(buffer, &flap, sizeof(flap));
+    buffer_write(buffer, &snac, sizeof(snac_t));
+    buffer_write(buffer, &screen_name_tlv.header, sizeof(tlv_header_t));
+    buffer_write(buffer, screen_name_tlv.payload, screen_name_payload_size);
+    buffer_write(buffer, &bos_address_tlv.header, sizeof(tlv_header_t));
+    buffer_write(buffer, bos_address_tlv.payload, bos_address_payload_size);
+    buffer_write(buffer, &login_cookie_tlv.header, sizeof(tlv_header_t));
+    buffer_write(buffer, login_cookie_tlv.payload, login_cookie_payload_size);
+    buffer_write(buffer, &email_address_tlv.header, sizeof(tlv_header_t));
+    buffer_write(buffer, email_address_tlv.payload, email_address_payload_size);
     
-    memcpy(&buffer[offset], &snac, sizeof(snac_t));
-    offset += sizeof(snac_t);
-    
-    memcpy(&buffer[offset], &screen_name_tlv.header, sizeof(tlv_header_t));
-    offset += sizeof(tlv_header_t);
-    
-    memcpy(&buffer[offset], screen_name_tlv.payload, screen_name_payload_size);
-    offset += screen_name_payload_size;
-    
-    memcpy(&buffer[offset], &bos_address_tlv.header, sizeof(tlv_header_t));
-    offset += sizeof(tlv_header_t);
-    
-    memcpy(&buffer[offset], bos_address_tlv.payload, bos_address_payload_size);
-    offset += bos_address_payload_size;
-    
-    memcpy(&buffer[offset], &login_cookie_tlv.header, sizeof(tlv_header_t));
-    offset += sizeof(tlv_header_t);
-    
-    memcpy(&buffer[offset], login_cookie_tlv.payload, login_cookie_payload_size);
-    offset += login_cookie_payload_size;
-    
-    memcpy(&buffer[offset], &email_address_tlv.header, sizeof(tlv_header_t));
-    offset += sizeof(tlv_header_t);
-    
-    memcpy(&buffer[offset], email_address_tlv.payload, email_address_payload_size);
-    offset += email_address_payload_size;
-    
-    if (connection_write(conn, buffer, buffer_size) != buffer_size) {
+    if (connection_write(conn, buffer_ptr(buffer), buffer_size) != buffer_size) {
         LOG_ERR("Failed to write to connection.");
     }
     
-    free(buffer);
+    buffer_deinit(buffer);
     
     LOG_INFO("Writing signoff flap.");
     prv_bucp_send_signoff_flap(conn);

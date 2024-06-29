@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.20)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/server)
 
 # Additional compiler set up
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
 
 # Sources
 set(AIM_SERVER_SOURCES
@@ -22,6 +23,8 @@ set(AIM_SERVER_SOURCES
     oscar/tlv_encoder.c
     model/client.c
     handlers/bucp.c
+    handlers/oservice.c
+    memory/buffer.c
 )
 
 # Include Paths
@@ -46,4 +49,9 @@ add_executable(aim_server_c
 # Link libraries
 link_libraries(aim_server_c
     ${AIM_SERVER_LIBS}
+)
+
+add_custom_target(code_stats
+    COMMAND ${CMAKE_SOURC}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
