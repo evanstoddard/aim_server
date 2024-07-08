@@ -10,8 +10,11 @@
 
 #include "auth_server.h"
 
+#include "oscar/auth_types.h"
+
 #include "oscar/flap.h"
 #include "oscar/frame.h"
+#include "oscar/snac.h"
 
 #include "oscar/flap_decoder.h"
 #include "oscar/snac_decoder.h"
@@ -86,7 +89,6 @@ static void prv_auth_server_handle_frame(connection_t *conn, frame_t *frame) {
 
 static void prv_auth_server_handle_signon_frame(connection_t *conn, frame_t *frame) {
     // TODO: Implement Handle Signon Frame
-    LOG_INFO("Received signon frame.");
 }
 
 static void prv_auth_server_handle_data_frame(connection_t *conn, frame_t *frame) {
@@ -102,92 +104,92 @@ static void prv_auth_server_handle_data_frame(connection_t *conn, frame_t *frame
     frame->snac_blob = frame->payload + sizeof(snac_t);
     
     switch(frame->snac.foodgroup_id) {
-    case SNAC_FOOTGROUP_ID_LOCATE:
-        // TODO: Implement SNAC_FOOTGROUP_ID_LOCATE handler
-        LOG_WARN("SNAC_FOOTGROUP_ID_LOCATE handler not implemented.");
+    case SNAC_FOODGROUP_ID_LOCATE:
+        // TODO: Implement SNAC_FOODGROUP_ID_LOCATE handler
+        LOG_WARN("SNAC_FOODGROUP_ID_LOCATE handler not implemented.");
         break;
-    case SNAC_FOOTGROUP_ID_OSERVICE:
-        // TODO: Implement SNAC_FOOTGROUP_ID_OSERVICE handler
-        LOG_WARN("SNAC_FOOTGROUP_ID_OSERVICE handler not implemented.");
+    case SNAC_FOODGROUP_ID_OSERVICE:
+        // TODO: Implement SNAC_FOODGROUP_ID_OSERVICE handler
+        LOG_WARN("SNAC_FOODGROUP_ID_OSERVICE handler not implemented.");
         break;
-    case SNAC_FOOTGROUP_ID_BUDDY:
-        // TODO: Implement SNAC_FOOTGROUP_ID_BUDDY handler
-        LOG_WARN("SNAC_FOOTGROUP_ID_BUDDY handler not implemented.");
+    case SNAC_FOODGROUP_ID_BUDDY:
+        // TODO: Implement SNAC_FOODGROUP_ID_BUDDY handler
+        LOG_WARN("SNAC_FOODGROUP_ID_BUDDY handler not implemented.");
         break;
-    case SNAC_FOOTGROUP_ID_ICBM:
-        // TODO: Implement SNAC_FOOTGROUP_ID_ICBM handler
-        LOG_WARN("SNAC_FOOTGROUP_ID_ICBM handler not implemented.");
+    case SNAC_FOODGROUP_ID_ICBM:
+        // TODO: Implement SNAC_FOODGROUP_ID_ICBM handler
+        LOG_WARN("SNAC_FOODGROUP_ID_ICBM handler not implemented.");
         break;
-    case SNAC_FOOTGROUP_ID_ADVERT:
-        // TODO: Implement SNAC_FOOTGROUP_ID_ADVERT handler
-        LOG_WARN("SNAC_FOOTGROUP_ID_ADVERT handler not implemented.");
+    case SNAC_FOODGROUP_ID_ADVERT:
+        // TODO: Implement SNAC_FOODGROUP_ID_ADVERT handler
+        LOG_WARN("SNAC_FOODGROUP_ID_ADVERT handler not implemented.");
         break;
-    case SNAC_FOOTGROUP_ID_INVITE:
-        // TODO: Implement SNAC_FOOTGROUP_ID_INVITE handler
-        LOG_WARN("SNAC_FOOTGROUP_ID_INVITE handler not implemented.");
+    case SNAC_FOODGROUP_ID_INVITE:
+        // TODO: Implement SNAC_FOODGROUP_ID_INVITE handler
+        LOG_WARN("SNAC_FOODGROUP_ID_INVITE handler not implemented.");
         break;
-    case SNAC_FOOTGROUP_ID_ADMIN:
-        // TODO: Implement SNAC_FOOTGROUP_ID_ADMIN handler
-        LOG_WARN("SNAC_FOOTGROUP_ID_ADMIN handler not implemented.");
+    case SNAC_FOODGROUP_ID_ADMIN:
+        // TODO: Implement SNAC_FOODGROUP_ID_ADMIN handler
+        LOG_WARN("SNAC_FOODGROUP_ID_ADMIN handler not implemented.");
         break;
-    case SNAC_FOOTGROUP_ID_POPUP:
-        // TODO: Implement SNAC_FOOTGROUP_ID_POPUP handler
-        LOG_WARN("SNAC_FOOTGROUP_ID_POPUP handler not implemented.");
+    case SNAC_FOODGROUP_ID_POPUP:
+        // TODO: Implement SNAC_FOODGROUP_ID_POPUP handler
+        LOG_WARN("SNAC_FOODGROUP_ID_POPUP handler not implemented.");
         break;
-    case SNAC_FOOTGROUP_ID_PD:
-        // TODO: Implement SNAC_FOOTGROUP_ID_PD handler
-        LOG_WARN("SNAC_FOOTGROUP_ID_PD handler not implemented.");
+    case SNAC_FOODGROUP_ID_PD:
+        // TODO: Implement SNAC_FOODGROUP_ID_PD handler
+        LOG_WARN("SNAC_FOODGROUP_ID_PD handler not implemented.");
         break;
-    case SNAC_FOOTGROUP_ID_USER_LOOKUP:
-        // TODO: Implement SNAC_FOOTGROUP_ID_USER_LOOKUP handler
-        LOG_WARN("SNAC_FOOTGROUP_ID_USER_LOOKUP handler not implemented.");
+    case SNAC_FOODGROUP_ID_USER_LOOKUP:
+        // TODO: Implement SNAC_FOODGROUP_ID_USER_LOOKUP handler
+        LOG_WARN("SNAC_FOODGROUP_ID_USER_LOOKUP handler not implemented.");
         break;
-    case SNAC_FOOTGROUP_ID_STATS:
-        // TODO: Implement SNAC_FOOTGROUP_ID_STATS handler
-        LOG_WARN("SNAC_FOOTGROUP_ID_STATS handler not implemented.");
+    case SNAC_FOODGROUP_ID_STATS:
+        // TODO: Implement SNAC_FOODGROUP_ID_STATS handler
+        LOG_WARN("SNAC_FOODGROUP_ID_STATS handler not implemented.");
         break;
-    case SNAC_FOOTGROUP_ID_TRANSLATE:
-        // TODO: Implement SNAC_FOOTGROUP_ID_TRANSLATE handler
-        LOG_WARN("SNAC_FOOTGROUP_ID_TRANSLATE handler not implemented.");
+    case SNAC_FOODGROUP_ID_TRANSLATE:
+        // TODO: Implement SNAC_FOODGROUP_ID_TRANSLATE handler
+        LOG_WARN("SNAC_FOODGROUP_ID_TRANSLATE handler not implemented.");
         break;
-    case SNAC_FOOTGROUP_ID_CHAT:
-        // TODO: Implement SNAC_FOOTGROUP_ID_CHAT handler
-        LOG_WARN("SNAC_FOOTGROUP_ID_CHAT handler not implemented.");
+    case SNAC_FOODGROUP_ID_CHAT:
+        // TODO: Implement SNAC_FOODGROUP_ID_CHAT handler
+        LOG_WARN("SNAC_FOODGROUP_ID_CHAT handler not implemented.");
         break;
-    case SNAC_FOOTGROUP_ID_ODIR:
-        // TODO: Implement SNAC_FOOTGROUP_ID_ODIR handler
-        LOG_WARN("SNAC_FOOTGROUP_ID_ODIR handler not implemented.");
+    case SNAC_FOODGROUP_ID_ODIR:
+        // TODO: Implement SNAC_FOODGROUP_ID_ODIR handler
+        LOG_WARN("SNAC_FOODGROUP_ID_ODIR handler not implemented.");
         break;
-    case SNAC_FOOTGROUP_ID_BART:
-        // TODO: Implement SNAC_FOOTGROUP_ID_BART handler
-        LOG_WARN("SNAC_FOOTGROUP_ID_BART handler not implemented.");
+    case SNAC_FOODGROUP_ID_BART:
+        // TODO: Implement SNAC_FOODGROUP_ID_BART handler
+        LOG_WARN("SNAC_FOODGROUP_ID_BART handler not implemented.");
         break;
-    case SNAC_FOOTGROUP_ID_FEEDBAG:
-        // TODO: Implement SNAC_FOOTGROUP_ID_FEEDBAG handler
-        LOG_WARN("SNAC_FOOTGROUP_ID_FEEDBAG handler not implemented.");
+    case SNAC_FOODGROUP_ID_FEEDBAG:
+        // TODO: Implement SNAC_FOODGROUP_ID_FEEDBAG handler
+        LOG_WARN("SNAC_FOODGROUP_ID_FEEDBAG handler not implemented.");
         break;
-    case SNAC_FOOTGROUP_ID_ICQ:
-        // TODO: Implement SNAC_FOOTGROUP_ID_ICQ handler
-        LOG_WARN("SNAC_FOOTGROUP_ID_ICQ handler not implemented.");
+    case SNAC_FOODGROUP_ID_ICQ:
+        // TODO: Implement SNAC_FOODGROUP_ID_ICQ handler
+        LOG_WARN("SNAC_FOODGROUP_ID_ICQ handler not implemented.");
         break;
-    case SNAC_FOOTGROUP_ID_BUCP:
+    case SNAC_FOODGROUP_ID_BUCP:
         bucp_handle_frame(conn, frame);
         break;
-    case SNAC_FOOTGROUP_ID_ALERT:
-        // TODO: Implement SNAC_FOOTGROUP_ID_ALERT handler
-        LOG_WARN("SNAC_FOOTGROUP_ID_ALERT handler not implemented.");
+    case SNAC_FOODGROUP_ID_ALERT:
+        // TODO: Implement SNAC_FOODGROUP_ID_ALERT handler
+        LOG_WARN("SNAC_FOODGROUP_ID_ALERT handler not implemented.");
         break;
-    case SNAC_FOOTGROUP_ID_PLUGIN:
-        // TODO: Implement SNAC_FOOTGROUP_ID_PLUGIN handler
-        LOG_WARN("SNAC_FOOTGROUP_ID_PLUGIN handler not implemented.");
+    case SNAC_FOODGROUP_ID_PLUGIN:
+        // TODO: Implement SNAC_FOODGROUP_ID_PLUGIN handler
+        LOG_WARN("SNAC_FOODGROUP_ID_PLUGIN handler not implemented.");
         break;
-    case SNAC_FOOTGROUP_ID_MDIR:
-        // TODO: Implement SNAC_FOOTGROUP_ID_MDIR handler
-        LOG_WARN("SNAC_FOOTGROUP_ID_MDIR handler not implemented.");
+    case SNAC_FOODGROUP_ID_MDIR:
+        // TODO: Implement SNAC_FOODGROUP_ID_MDIR handler
+        LOG_WARN("SNAC_FOODGROUP_ID_MDIR handler not implemented.");
         break;
-    case SNAC_FOOTGROUP_ID_ARS:
-        // TODO: Implement SNAC_FOOTGROUP_ID_ARS handler
-        LOG_WARN("SNAC_FOOTGROUP_ID_ARS handler not implemented.");
+    case SNAC_FOODGROUP_ID_ARS:
+        // TODO: Implement SNAC_FOODGROUP_ID_ARS handler
+        LOG_WARN("SNAC_FOODGROUP_ID_ARS handler not implemented.");
         break;
     default:
         LOG_WARN("Unknown SNAC ID.");

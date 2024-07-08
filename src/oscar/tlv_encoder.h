@@ -65,6 +65,24 @@ ssize_t tlv_encode_login_cookie(tlv_t *tlv, char *login_cookie);
  */
 ssize_t tlv_encode_email_address(tlv_t *tlv, char *email_address);
 
+/**
+ * @brief Encode uint16_t value
+ * 
+ * @param id TLV ID
+ * @param val Value
+ * @return tlv_uint16_t Encoded TLV
+ */
+tlv_uint16_t tlv_uint16_encode(uint16_t id, uint16_t val);
+
+/**
+ * @brief Encode uint32_t value
+ * 
+ * @param id TLV ID
+ * @param val Value
+ * @return tlv_uint32_t Encoded TLV
+ */
+tlv_uint32_t tlv_uint32_encode(uint16_t id, uint32_t val);
+
 #ifdef __cplusplus
 }
 #endif

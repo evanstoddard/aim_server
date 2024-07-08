@@ -32,23 +32,35 @@ extern "C" {
  */
 struct tlv_t;
 
+/*
+ * TODO: Annoyingly, TLV tag IDs are reused... is there a better 
+ * solution to this?
+ */
+
 /**
  * @brief TLV Tag IDs
  * 
  */
 typedef enum {
     TLV_TAG_SCREEN_NAME         = 0x1,
+    TLV_TAG_USER_CLASS          = 0x1,
     TLV_TAG_CLIENT_NAME         = 0x3,
+    TLV_TAG_SIGNON_TIME         = 0x3,
     TLV_TAG_BOS_ADDRESS         = 0x5,
+    TLV_TAG_MEMBER_SINCE        = 0x5,
     TLV_TAG_LOGIN_COOKIE        = 0x6,
+    TLV_TAG_USER_STATUS         = 0x6,
+    TLV_TAG_EXT_IP_ADDR         = 0xA,
     TLV_TAG_CLIENT_COUNTRY      = 0xE,
     TLV_TAG_CLIENT_LANG         = 0xF,
+    TLV_TAG_CLIENT_IDLE_TIME    = 0xF,
     TLV_TAG_CLIENT_EMAIL_ADDR   = 0x11,
     TLV_TAG_DIST_NUMBER         = 0x14,
     TLV_TAG_CLIENT_ID           = 0x16,
     TLV_TAG_VERSION_MAJOR       = 0x17,
     TLV_TAG_VERSION_MINOR       = 0x18,
     TLV_TAG_VERSION_LESSER      = 0x19,
+    TLV_TAG_UNDEFINED           = 0x1E, // This is unknown... not denoting unknown
     TLV_TAG_BUILD_NUM           = 0x1A,
     TLV_TAG_MD5_HASHED_PASSWORD = 0x25,
     TLV_TAG_SSI_FLAG            = 0x4A,
@@ -63,6 +75,24 @@ typedef struct tlv_header_t {
     uint16_t tag;
     uint16_t length;
 } __attribute__((packed)) tlv_header_t;
+
+/**
+ * @brief uint16_t tlv
+ * 
+ */
+typedef struct tlv_uint16_t {
+    tlv_header_t header;
+    uint16_t val;
+} __attribute__((packed)) tlv_uint16_t;
+
+/**
+ * @brief uint32_t tlv
+ * 
+ */
+typedef struct tlv_uint32_t {
+    tlv_header_t header;
+    uint32_t val;
+} __attribute__((packed)) tlv_uint32_t;
 
 /**
  * @brief TLV Definition

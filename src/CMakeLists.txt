@@ -1,9 +1,12 @@
 cmake_minimum_required(VERSION 3.20)
 
+find_package(SQLite3 REQUIRED)
+
 # Additional Options
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/server)
 
 # Additional compiler set up
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
 
 # Sources
 set(AIM_SERVER_SOURCES
@@ -22,6 +25,10 @@ set(AIM_SERVER_SOURCES
     oscar/tlv_encoder.c
     model/client.c
     handlers/bucp.c
+    handlers/oservice.c
+    memory/buffer.c
+    backends/backend.c
+    backends/sqlite3/sqlite3_backend.c
 )
 
 # Include Paths
@@ -31,11 +38,11 @@ set(AIM_SERVER_INCLUDES
 
 # Libraries
 set(AIM_SERVER_LIBS
-
+    ${SQLite3_LIBRARIES}
 )
-
 include_directories(
     ${AIM_SERVER_INCLUDES}
+    ${SQLite3_INCLUDE_DIRS}
 )
 
 # Create Executable
@@ -44,6 +51,11 @@ add_executable(aim_server_c
 )
 
 # Link libraries
-link_libraries(aim_server_c
+target_link_libraries(aim_server_c
     ${AIM_SERVER_LIBS}
+)
+
+add_custom_target(code_stats
+    COMMAND ${CMAKE_SOURCE}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )

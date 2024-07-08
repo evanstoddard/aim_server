@@ -12,6 +12,9 @@
 #define CLIENT_H_
 
 #include <stdint.h>
+#include <stdbool.h>
+
+#include "model_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,7 +33,7 @@ extern "C" {
  * 
  */
 typedef struct client_t {
-    char *screen_name;
+    user_info_t user_info;
     
     char *client_id_str;
     uint16_t client_id;
@@ -56,6 +59,34 @@ typedef struct client_t {
  * @return client_t* 
  */
 client_t* client_init(void);
+
+/**
+ * @brief Get user info from UIN
+ * 
+ * @param client Pointer to client
+ * @param uin User UIN
+ * @return true Able to fetch user info
+ * @return false Unable to fetch user info
+ */
+bool client_fetch_user_info_with_uin(client_t *client, char *uin);
+
+/**
+ * @brief Get user info from email address
+ * 
+ * @param client Pointer to client
+ * @param email User email address
+ * @return true Able to fetch user info
+ * @return false Unable to fetch user info
+ */
+bool client_fetch_user_info_with_email(client_t *client, char *email);
+
+/**
+ * @brief Get client object from UIN
+ * 
+ * @param uin UIN (Screen name)
+ * @return client_t* Fetched client (NULL of client not found)
+ */
+client_t* client_from_uin(char *uin);
 
 /**
  * @brief Deinitialize client
