@@ -212,6 +212,7 @@ void prv_oserver_send_host_versions(connection_t *conn) {
     if (buffer == NULL) {
         LOG_ERR("Unable to malloc output buffer. Out of memory?");
         connection_close(conn);
+        return;
     }
     
     snac_version_t *version_arr = (snac_version_t *)&buffer[sizeof(flap_t) + sizeof(snac_t)];
@@ -594,6 +595,7 @@ void oservice_send_host_online_response(connection_t *conn) {
     if (buffer == NULL) {
         LOG_ERR("Unable to malloc output buffer. Out of memory?");
         connection_close(conn);
+        return;
     }
     
     uint16_t *tlv_array = (uint16_t *)&buffer[sizeof(flap_t) + sizeof(snac_t)];

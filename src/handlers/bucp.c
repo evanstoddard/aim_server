@@ -160,17 +160,27 @@ static void prv_bucp_handle_login_request(connection_t *conn, frame_t *frame) {
             break;
         }
         case TLV_TAG_SCREEN_NAME: {
-            conn->client->screen_name = malloc(tlv.header.length + 1);
+            char *uin = calloc(sizeof(char), tlv.header.length + 1);
             
-            if (conn->client->screen_name == NULL) {
+            if (uin == NULL) {
                 LOG_ERR("Unable to malloc space for screen name. Out of memory?");
                 connection_close(conn);
                 return;
             }
+
+            memcpy(uin, tlv.payload, tlv.header.length);
             
-            memset(conn->client->screen_name, 0, (tlv.header.length + 1));
+            // Attempt to fetch user info
+            bool ret = client_fetch_user_info_with_uin(conn->client, uin);
+            free(uin);
             
-            memcpy(conn->client->screen_name, tlv.payload, tlv.header.length);
+            // TODO: Implement login failed response instead of silently dumping connection
+            if (!ret) {
+                LOG_ERR("Failed to find user.");
+                connection_close(conn);
+                return;
+            }
+            
             break;
         }
         case TLV_TAG_CLIENT_NAME: {
@@ -297,10 +307,10 @@ static void prv_bucp_send_login_response_success(connection_t *conn) {
     snac_t snac = snac_encode(SNAC_FOODGROUP_ID_BUCP, BUCP_LOGIN_RESPONSE, 0, 0);
     
     // Create TLVs
-    tlv_t screen_name_tlv;
-    ssize_t screen_name_tlv_size = tlv_encode_screen_name(&screen_name_tlv, conn->client->screen_name);
-    ssize_t screen_name_payload_size = screen_name_tlv_size - sizeof(tlv_header_t);
-    payload_length += screen_name_tlv_size;
+    tlv_t uid_tlv;
+    ssize_t uid_tlv_size = tlv_encode_screen_name(&uid_tlv, conn->client->user_info.uin);
+    ssize_t uid_payload_size = uid_tlv_size - sizeof(tlv_header_t);
+    payload_length += uid_tlv_size;
     
     tlv_t bos_address_tlv;
     ssize_t bos_address_tlv_size = tlv_encode_bos_address(&bos_address_tlv, "192.168.86.50:5191");
@@ -309,12 +319,12 @@ static void prv_bucp_send_login_response_success(connection_t *conn) {
     
     // TODO: Create real cookie and base64 encode.
     tlv_t login_cookie_tlv;
-    ssize_t login_cookie_tlv_size = tlv_encode_login_cookie(&login_cookie_tlv, conn->client->screen_name);
+    ssize_t login_cookie_tlv_size = tlv_encode_login_cookie(&login_cookie_tlv, conn->client->user_info.uin);
     ssize_t login_cookie_payload_size = login_cookie_tlv_size - sizeof(tlv_header_t);
     payload_length += login_cookie_tlv_size;
 
     tlv_t email_address_tlv;
-    ssize_t email_address_tlv_size = tlv_encode_email_address(&email_address_tlv, "user@example.com");
+    ssize_t email_address_tlv_size = tlv_encode_email_address(&email_address_tlv, conn->client->user_info.email);
     ssize_t email_address_payload_size = email_address_tlv_size - sizeof(tlv_header_t);
     payload_length += email_address_tlv_size;
 
@@ -335,8 +345,8 @@ static void prv_bucp_send_login_response_success(connection_t *conn) {
     
     buffer_write(buffer, &flap, sizeof(flap));
     buffer_write(buffer, &snac, sizeof(snac_t));
-    buffer_write(buffer, &screen_name_tlv.header, sizeof(tlv_header_t));
-    buffer_write(buffer, screen_name_tlv.payload, screen_name_payload_size);
+    buffer_write(buffer, &uid_tlv.header, sizeof(tlv_header_t));
+    buffer_write(buffer, uid_tlv.payload, uid_payload_size);
     buffer_write(buffer, &bos_address_tlv.header, sizeof(tlv_header_t));
     buffer_write(buffer, bos_address_tlv.payload, bos_address_payload_size);
     buffer_write(buffer, &login_cookie_tlv.header, sizeof(tlv_header_t));

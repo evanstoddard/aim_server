@@ -10,14 +10,20 @@
 
 #include "client.h"
 
-#include "logging.h"
-
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
 
+#include "logging.h"
+#include "backends/backend.h"
+
 /*****************************************************************************
  * Definitions
+ *****************************************************************************/
+
+
+/*****************************************************************************
+ * Structs, Unions, Enums, & Typedefs
  *****************************************************************************/
 
 /*****************************************************************************
@@ -29,7 +35,12 @@
  *****************************************************************************/
 
 /*****************************************************************************
- * Functions
+ * Public Functions
+ *****************************************************************************/
+
+
+/*****************************************************************************
+ * Public Functions
  *****************************************************************************/
 
 client_t* client_init(void) {
@@ -44,13 +55,45 @@ client_t* client_init(void) {
     return client;
 }
 
+bool client_fetch_user_info_with_uin(client_t *client, char *uin) {
+    if (client == NULL || uin == NULL) {
+        return false;
+    }
+    
+    backend_ret_t ret = backend_fetch_user_info_with_uin(uin, &client->user_info);
+    
+    if (ret != BACKEND_RET_SUCCESS) {
+        return false;
+    }
+    
+    return true;
+}
+
+bool client_fetch_user_info_with_email(client_t *client, char *email) {
+    if (client == NULL || email == NULL) {
+        return false;
+    }
+    
+    backend_ret_t ret = backend_fetch_user_info_with_email(email, &client->user_info);
+    
+    if (ret != BACKEND_RET_SUCCESS) {
+        return false;
+    }
+    
+    return true;
+}
+
 void client_deinit(client_t *client) {
     if (client == NULL) {
         return;
     }
     
-    if (client->screen_name) {
-        free(client->screen_name);
+    if (client->user_info.uin) {
+        free(client->user_info.uin);
+    }
+    
+    if (client->user_info.email) {
+        free(client->user_info.email);
     }
     
     if (client->client_id_str) {
@@ -67,7 +110,8 @@ void client_log_info(client_t *client) {
     
     LOG_INFO("Client Info:");
     
-    printf("\tScreen Name: %s\r\n", (client->screen_name ? client->screen_name : "N/A"));
+    printf("\tScreen Name: %s\r\n", (client->user_info.uin ? client->user_info.uin : "N/A"));
+    printf("\tEmail: %s\r\n", (client->user_info.email ? client->user_info.email : "N/A"));
     printf("\tID String: %s\r\n", (client->client_id_str ? client->client_id_str : "N/A"));
     printf("\tVersion: %u.%u.%u\r\n", client->version_major, client->version_minor, client->version_build);
     printf("\tClient Language: %s\r\n", client->lang);
