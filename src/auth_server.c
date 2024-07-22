@@ -207,6 +207,14 @@ void auth_server_handle_new_connection(connection_t *conn) {
     }
     LOG_INFO("Handling new auth connection.");
     
+    conn->client = client_init();
+    
+    if (conn->client == NULL) {
+        LOG_ERR("Unable to create client. Out of memory?");
+        connection_close(conn);
+        return;
+    }
+    
     // Set connection event callback
     conn->callbacks.on_event = auth_server_handle_event;
     

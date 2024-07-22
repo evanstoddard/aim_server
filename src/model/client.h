@@ -13,6 +13,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 #include "model_types.h"
 
@@ -23,6 +24,8 @@ extern "C" {
 /*****************************************************************************
  * Definitions
  *****************************************************************************/
+
+#define CLIENT_MD5_AIM_STRING "AOL Instant Messenger (SM)"
 
 /*****************************************************************************
  * Structs, Unions, Enums, & Typedefs
@@ -47,6 +50,8 @@ typedef struct client_t {
     
     char lang[3];
     char country[3];
+    
+    char *challenge;
 } client_t;
 
 /*****************************************************************************
@@ -96,11 +101,30 @@ client_t* client_from_uin(char *uin);
 void client_deinit(client_t *client);
 
 /**
- * @brief Log Client Info
+ * @brief Generate base 32 cipher.
  * 
- * @param client Pointer to Client
+ * @return char* Pointer to cipher (must be freed after use)
  */
-void client_log_info(client_t *client);
+
+/**
+ * @brief Generate base32 challenge cipher
+ * 
+ * @param client Pointer to client
+ * @return true Able to generate cipher
+ * @return false Unable to generate cipher
+ */
+bool client_generate_cipher(client_t *client);
+
+/**
+ * @brief Validate challenge response
+ * 
+ * @param client Pointer to client
+ * @param challenge Pointer to challenge response
+ * @param challenge_size Size of challenge response
+ * @return true Challenge response valid
+ * @return false Challenge response invalid
+ */
+bool client_validate_challenge(client_t *client, uint8_t *challenge, size_t challenge_size);
 
 #ifdef __cplusplus
 }

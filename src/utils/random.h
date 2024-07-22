@@ -3,18 +3,15 @@
  */
 
 /**
- * @file sqlite3_backend.h
+ * @file random.h
  * @author Evan Stoddard
- * @brief SQLite3 based data backend
+ * @brief Functions for generating random data
  */
 
-#ifndef SQLITE3_BACKEND_H_
-#define SQLITE3_BACKEND_H_
+#ifndef RANDOM_H_
+#define RANDOM_H_
 
-#include "backends/backend.h"
-
-#include <stdbool.h>
-#include <sqlite3.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,31 +25,19 @@ extern "C" {
  * Structs, Unions, Enums, & Typedefs
  *****************************************************************************/
 
-/**
- * @brief SQLite3 Backend typedef
- * 
- */
-typedef struct sqlite3_backend_t {
-    backend_t base;
-    sqlite3 *db;
-} sqlite3_backend_t;
-
 /*****************************************************************************
  * Function Prototypes
  *****************************************************************************/
 
 /**
- * @brief Initialize SQLite3 backend
+ * @brief Generate stream of random bytes
  * 
- * @param inst Instance
- * @param db_path Path to database file
- * @return true Able to initialize backend
- * @return false Unable to initialize backend
+ * @param dest Destination
+ * @param bytes Number of random bytes
  */
-bool sqlite3_backend_init(sqlite3_backend_t *inst, char *db_path);
-
+void generate_random_stream(uint8_t *dest, uint32_t bytes);
 
 #ifdef __cplusplus
 }
 #endif
-#endif /* SQLITE3_BACKEND_H_ */
+#endif /* RANDOM_H_ */

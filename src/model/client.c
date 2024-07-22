@@ -16,11 +16,15 @@
 
 #include "logging.h"
 #include "backends/backend.h"
+#include "utils/random.h"
+#include "md5.h"
+#include "base32/base32.h"
 
 /*****************************************************************************
  * Definitions
  *****************************************************************************/
 
+#define CLIENT_AUTH_MD5_MAGIC "AOL Instant Messenger (SM)"
 
 /*****************************************************************************
  * Structs, Unions, Enums, & Typedefs
@@ -100,21 +104,58 @@ void client_deinit(client_t *client) {
         free(client->client_id_str);
     }
     
+    if (client->challenge) {
+        free(client->challenge);
+    }
+    
     free(client);
 }
 
-void client_log_info(client_t *client) {
+bool client_generate_cipher(client_t *client) {
     if (client == NULL) {
-        return;
+        return false;
     }
     
-    LOG_INFO("Client Info:");
+    // This case should never exist, but free any previous challenge ciphers...
+    if (client->challenge != NULL) {
+        free(client->challenge);
+        client->challenge == NULL;
+    }
     
-    printf("\tScreen Name: %s\r\n", (client->user_info.uin ? client->user_info.uin : "N/A"));
-    printf("\tEmail: %s\r\n", (client->user_info.email ? client->user_info.email : "N/A"));
-    printf("\tID String: %s\r\n", (client->client_id_str ? client->client_id_str : "N/A"));
-    printf("\tVersion: %u.%u.%u\r\n", client->version_major, client->version_minor, client->version_build);
-    printf("\tClient Language: %s\r\n", client->lang);
-    printf("\tClient Country: %s\r\n", client->country);
+    // Generate 64 random bytes
+    uint8_t random_bytes[64] = {0};
+    generate_random_stream(random_bytes, 64);
     
+    size_t len = base32_encode_alloc(random_bytes, sizeof(random_bytes), &client->challenge);
+    return (len != 0);
+}
+
+bool client_validate_challenge(client_t *client, uint8_t *challenge, size_t challenge_size) {
+    if (
+        client == NULL ||
+        challenge == NULL
+    ) {
+        return false;
+    }
+    
+    if (client->challenge == NULL) {
+        return false;
+    }
+    
+    MD5Context md5_ctx;
+    md5Init(&md5_ctx);
+    
+    if (challenge_size != sizeof(md5_ctx.digest)) {
+        return false;
+    }
+    
+    // Generate expected challenge response
+    md5Update(&md5_ctx, client->challenge, strlen(client->challenge));
+    md5Update(&md5_ctx, client->user_info.md5_password, sizeof(client->user_info.md5_password));
+    md5Update(&md5_ctx, CLIENT_AUTH_MD5_MAGIC, strlen(CLIENT_AUTH_MD5_MAGIC));
+    md5Finalize(&md5_ctx);
+    
+    int ret = memcmp(challenge, md5_ctx.digest, sizeof(md5_ctx.digest));
+    
+    return (ret == 0);
 }

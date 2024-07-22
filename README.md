@@ -9,6 +9,7 @@ An (incomplete) AOL Instant Messager server written in C.
     - [Why in C?](#why-in-c)
   - [State of the Union:](#state-of-the-union)
   - [Building](#building)
+  - [Disclaimers](#disclaimers)
 
 
 ## About
@@ -41,3 +42,15 @@ TL;DR:
 mkdir build && cd build
 cmake .. && make
 ```
+
+## Disclaimers
+
+Hopefully this goes without saying, but this shouldn't be used in any sort of production capacity. This is a fun project to recreate an old service. Any password entered is only hashed with the MD5 algorithm.
+
+In the SQLite3 reference integration, input is not sanitized for any sort of SQL injection (you're more than welcome to improve it and submit a PR! 😊).
+
+All traffic is unencrypted (again... PR if you want to bring in TLS 😊😊).
+
+Also, it's written in C and if you really wanted to, you can export the ports it spins up to the broader internet. While I do run some static code analysis and valgrid, memory safety was not my top priority, so... attempt as much stacksmashing as your heart desires!
+
+Also, sockets are handled with polling and all execution happens in a single thread, so efficiency is probably not all that great.

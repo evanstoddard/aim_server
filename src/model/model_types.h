@@ -11,6 +11,8 @@
 #ifndef MODEL_TYPES_H_
 #define MODEL_TYPES_H_
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -30,6 +32,7 @@ extern "C" {
 typedef struct user_info_t {
     char *uin;
     char *email;
+    uint8_t md5_password[16];
 } user_info_t;
 
 /*****************************************************************************

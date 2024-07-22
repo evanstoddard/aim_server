@@ -53,3 +53,11 @@ backend_ret_t backend_fetch_user_info_with_email(char *email, user_info_t *user_
     
     return prv_backend->api.fetch_user_info_with_email(prv_backend, email, user_info);
 }
+
+backend_ret_t backend_create_user(char *uin, char *email, char *password) {
+    if (prv_backend == NULL) {
+        return BACKEND_RET_BACKEND_ERROR;
+    }
+    
+    return prv_backend->api.create_user(prv_backend, uin, email, password);
+}
