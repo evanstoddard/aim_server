@@ -100,6 +100,7 @@ int main(int argc, char **argv) {
     // Create user model
     char uin[INPUT_BUFFER_SIZE_BYTES] = {0};
     char email[INPUT_BUFFER_SIZE_BYTES] = {0};
+    char password[INPUT_BUFFER_SIZE_BYTES] = {0};
     
     user_info_t user;
     user.email = email;
@@ -121,7 +122,13 @@ int main(int argc, char **argv) {
             continue;
         }
         
-        backend_ret_t ret = backend_create_user(user.uin, user.email);
+        printf("Password: ");
+        if (!get_input(password, INPUT_BUFFER_SIZE_BYTES)) {
+            printf("Error: Please enter valid password.\r\n");
+            continue;
+        }
+        
+        backend_ret_t ret = backend_create_user(user.uin, user.email, password);
         
         if (ret == BACKEND_RET_USER_ALREADY_EXISTS) {
             printf("Error: User already exists!\r\n");

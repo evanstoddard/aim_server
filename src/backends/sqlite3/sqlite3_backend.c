@@ -14,6 +14,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "md5.h"
+
 #include "logging.h"
 
 /*****************************************************************************
@@ -22,10 +24,9 @@
 
 #define SQLITE3_MAX_QUERY_SIZE 256
 
-#define SQLITE3_BACKEND_QUERY_USERNAME_STATEMENT    "SELECT * FROM users WHERE uin='%s' LIMIT 1"
-#define SQLITE3_BACKEND_QUERY_EMAIL_STATEMENT       "SELECT * FROM users WHERE email='%s' LIMIT 1"
-
-#define SQLITE3_BACKEND_INSERT_USER_STATEMENT       "INSERT INTO users (uin, email) VALUES('%s', '%s')"
+#define SQLITE3_BACKEND_QUERY_UIN_STATEMENT         "SELECT rowid,uin,email,md5_password FROM users WHERE uin = :uin LIMIT 1"
+#define SQLITE3_BACKEND_QUERY_EMAIL_STATEMENT       "SELECT rowid,uin,email,md5_password FROM users WHERE email = :email LIMIT 1"
+#define SQLITE3_BACKEND_INSERT_USER_STATEMENT       "INSERT INTO users (uin, email, md5_password) VALUES(:uin, :email, :md5_password)"
 
 #define SQLITE3_BACKEND_UIN_COL_NAME    "uin"
 #define SQLITE3_BACKEND_EMAIL_COL_NAME  "email"
@@ -75,6 +76,16 @@ static backend_ret_t prv_sqlite3_backend_fetch_user_info_with_uin(struct backend
 static backend_ret_t prv_sqlite3_backend_fetch_user_info_with_email(struct backend_t *backend, char *email, user_info_t *user_info);
 
 /**
+ * @brief With given statement, populate user info struct
+ * 
+ * @param backend Pointer to backend
+ * @param stmt SQLite3 statement
+ * @param user_info Pointer to user info
+ * @return backend_ret_t Status of query
+ */
+static backend_ret_t prv_sqlite_backend_fill_user_info(struct backend_t *backend, sqlite3_stmt *stmt, user_info_t *user_info);
+
+/**
  * @brief Function to check if user exists with given UIN
  * 
  * @param backend Pointer to backend instance
@@ -100,9 +111,10 @@ static bool prv_sqlite3_backend_user_exists_with_email(struct backend_t *backend
  * @param backend Pointer to backend instance
  * @param uin UIN of new user
  * @param email Email address of new user
+ * @param password Password of new user
  * @return backend_ret_t Status of request
  */
-static backend_ret_t prv_sqlite_backend_create_user(struct backend_t *backend, char *uin, char *email);
+static backend_ret_t prv_sqlite_backend_create_user(struct backend_t *backend, char *uin, char *email, char *password);
 
 /**
  * @brief SQLite3 callback for fetching user info
@@ -136,24 +148,15 @@ static backend_ret_t prv_sqlite3_backend_fetch_user_info_with_uin(struct backend
     
     sqlite3_backend_t *inst = (sqlite3_backend_t *)backend;
     
-    // Query
-    char query[SQLITE3_MAX_QUERY_SIZE] = {0};
-    snprintf(query, SQLITE3_MAX_QUERY_SIZE - 1, SQLITE3_BACKEND_QUERY_USERNAME_STATEMENT, uin);
+    // Generate statement
+    sqlite3_stmt * stmt = NULL;
+    sqlite3_prepare_v2(inst->db, SQLITE3_BACKEND_QUERY_UIN_STATEMENT, -1, &stmt, NULL);
     
-    int ret = -1;
+    // Bind arguments
+    int uin_idx = sqlite3_bind_parameter_index(stmt, ":uin");
+    sqlite3_bind_text(stmt, uin_idx, uin, -1, NULL);
     
-    char *err = 0;
-    ret = sqlite3_exec(inst->db, query, prv_sqlite_backend_user_info_query_cb, user_info, &err);
-    
-    if (err != NULL) {
-        LOG_ERR("%s", err);
-    }
-    
-    if (ret != BACKEND_RET_SUCCESS) {
-        return ret;
-    }
-    
-    return BACKEND_RET_SUCCESS;
+    return prv_sqlite_backend_fill_user_info(backend, stmt, user_info);
 }
 
 static backend_ret_t prv_sqlite3_backend_fetch_user_info_with_email(struct backend_t *backend, char *email, user_info_t *user_info) {
@@ -167,17 +170,66 @@ static backend_ret_t prv_sqlite3_backend_fetch_user_info_with_email(struct backe
     
     sqlite3_backend_t *inst = (sqlite3_backend_t *)backend;
     
-    // Query
-    char query[SQLITE3_MAX_QUERY_SIZE] = {0};
-    snprintf(query, SQLITE3_MAX_QUERY_SIZE - 1, SQLITE3_BACKEND_QUERY_EMAIL_STATEMENT, email);
+    // Generate statement
+    sqlite3_stmt * stmt = NULL;
+    sqlite3_prepare_v2(inst->db, SQLITE3_BACKEND_QUERY_EMAIL_STATEMENT, -1, &stmt, NULL);
     
-    int ret = -1;
+    // Bind arguments
+    int email_idx = sqlite3_bind_parameter_index(stmt, ":email");
+    sqlite3_bind_text(stmt, email_idx, email, -1, NULL);
     
-    ret = sqlite3_exec(inst->db, query, prv_sqlite_backend_user_info_query_cb, user_info, NULL);
+    return prv_sqlite_backend_fill_user_info(backend, stmt, user_info);
+}
+
+static backend_ret_t prv_sqlite_backend_fill_user_info(struct backend_t *backend, sqlite3_stmt *stmt, user_info_t *user_info) {
+    // Execute Query
+    int step_ret = sqlite3_step(stmt);
     
-    if (ret != BACKEND_RET_SUCCESS) {
-        return ret;
+    int ret = BACKEND_RET_SUCCESS;
+    
+    switch(step_ret) {
+    case SQLITE_ROW:
+        break;
+    case SQLITE_DONE:
+        sqlite3_finalize(stmt);
+        return BACKEND_RET_NO_RESULT;
+    default:
+        LOG_ERR("SQLite Backend Fetch Error: %d", ret);
+        return BACKEND_RET_BACKEND_ERROR;
     }
+    
+    // Get values
+    const char * uin = sqlite3_column_text(stmt, 1);
+    const char * email = sqlite3_column_text(stmt, 2);
+    const uint8_t *md5_password = sqlite3_column_blob(stmt, 3);
+    int blob_size = sqlite3_column_bytes(stmt, 3);
+    
+    if (blob_size != sizeof(user_info->md5_password)) {
+        sqlite3_finalize(stmt);
+        return BACKEND_RET_DATA_ERROR;
+    }
+    
+    if (uin == NULL || email == NULL) {
+        sqlite3_finalize(stmt);
+        return BACKEND_RET_DATA_ERROR;
+    }
+    
+    user_info->uin = calloc(sizeof(char), strlen(uin) + 1);
+    user_info->email = calloc(sizeof(char), strlen(email) + 1);
+    memcpy(user_info->md5_password, md5_password, blob_size);
+    
+    if (
+        user_info->email == NULL ||
+        user_info->uin == NULL
+    ) {
+        sqlite3_finalize(stmt);
+        return BACKEND_RET_OTHER_ERROR;
+    }
+    
+    strcpy(user_info->uin, uin);
+    strcpy(user_info->email, email);
+    
+    sqlite3_finalize(stmt);
     
     return BACKEND_RET_SUCCESS;
 }
@@ -246,16 +298,15 @@ static bool prv_sqlite3_backend_user_exists_with_email(struct backend_t *backend
     return exists;
 }
 
-static backend_ret_t prv_sqlite_backend_create_user(struct backend_t *backend, char *uin, char *email) {
+static backend_ret_t prv_sqlite_backend_create_user(struct backend_t *backend, char *uin, char *email, char *password) {
     if (
         backend == NULL || 
         uin == NULL || 
-        email == NULL
+        email == NULL ||
+        password == NULL
     ) {
         return BACKEND_RET_BAD_ARGS;
     }
-    
-    user_info_t user_info = {0};
     
     // Check if user already exists with UIN
     if (prv_sqlite3_backend_user_exists_with_uin(backend, uin)) {
@@ -267,40 +318,51 @@ static backend_ret_t prv_sqlite_backend_create_user(struct backend_t *backend, c
         return BACKEND_RET_EMAIL_ALREADY_EXISTS;
     }
     
-}
+    // Create MD5 hash of password (so at least not stored in plaintext)
+    MD5Context md5_ctx = {0};
+    md5Init(&md5_ctx);
+    md5Update(&md5_ctx, password, strlen(password));
+    md5Finalize(&md5_ctx);
+    
+    // Create statement
+    sqlite3_backend_t *inst = (sqlite3_backend_t *)backend;
 
-static int prv_sqlite_backend_user_info_query_cb(void *ctx, int argc, char **col_data, char **col_name) {
-    // If number of columns is less than data requested, return error
-    if (argc < 2) {
-        return BACKEND_RET_DATA_ERROR;
+    sqlite3_stmt * stmt = NULL;
+    sqlite3_prepare_v2(inst->db, SQLITE3_BACKEND_INSERT_USER_STATEMENT, -1, &stmt, NULL);
+    
+    // Bind params
+    sqlite3_bind_blob(
+        stmt,
+        sqlite3_bind_parameter_index(stmt, ":md5_password"),
+        md5_ctx.digest, 
+        sizeof(md5_ctx.digest),
+        NULL
+    );
+    
+    sqlite3_bind_text(
+        stmt,
+        sqlite3_bind_parameter_index(stmt, ":uin"),
+        uin, 
+        strlen(uin),
+        NULL
+    );
+    
+    sqlite3_bind_text(
+        stmt,
+        sqlite3_bind_parameter_index(stmt, ":email"),
+        email, 
+        strlen(email),
+        NULL
+    );
+    
+    int ret = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+    
+    if (ret != SQLITE_DONE) {
+        LOG_ERR("Failed to create new user. (%d)", ret);
+        return BACKEND_RET_BACKEND_ERROR;
     }
     
-    user_info_t *user_info = (user_info_t *)ctx;
-    
-    for (int i = 0; i < argc; i++) {
-        if (!strcmp(col_name[i], SQLITE3_BACKEND_UIN_COL_NAME)) {
-            user_info->uin = calloc(sizeof(char), strlen(col_data[i]) + 1);
-            
-            if (user_info->uin == NULL) {
-                return BACKEND_RET_BACKEND_ERROR;
-            }
-            
-            strcpy(user_info->uin, col_data[i]);
-        } else if (!strcmp(col_name[i], SQLITE3_BACKEND_EMAIL_COL_NAME)) {
-            user_info->email = calloc(sizeof(char), strlen(col_data[i]) + 1);
-            
-            if (user_info->email == NULL) {
-                return BACKEND_RET_BACKEND_ERROR;
-            }
-            
-            strcpy(user_info->email, col_data[i]);
-        }
-    }
-    
-    /*
-    TODO:   Need to refactor code above and below to appropriately verify that
-            all user info fields are accounted for in query...
-    */
     return BACKEND_RET_SUCCESS;
 }
 

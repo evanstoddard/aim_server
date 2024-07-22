@@ -95,14 +95,6 @@ static void prv_bucp_handle_login_request(connection_t *conn, frame_t *frame) {
     ssize_t blob_size = frame->flap.payload_length - sizeof(snac_t);
     ssize_t idx = 0;
     
-    conn->client = client_init();
-    
-    if (conn->client == NULL) {
-        LOG_ERR("Unable to create client. Out of memory?");
-        connection_close(conn);
-        return;
-    }
-    
     // Iterate through TLVs
     while (idx < blob_size) {
         ssize_t remaining_bytes = blob_size - idx;
@@ -189,9 +181,14 @@ static void prv_bucp_handle_login_request(connection_t *conn, frame_t *frame) {
             break;
         }
         case TLV_TAG_MD5_HASHED_PASSWORD: {
-            uint8_t *md5_password = malloc(tlv.header.length);
-            memcpy(md5_password, tlv.payload, tlv.header.length);
-            free(md5_password);
+            bool valid_challenge = client_validate_challenge(conn->client, tlv.payload, tlv.header.length);
+            
+            if (valid_challenge == false) {
+                // TODO: Implement login failed response instead of silently dumping connection.
+                LOG_INFO("User challenge response incorrect.");
+                connection_close(conn);
+                return;
+            }
             break;
         }
         default:
@@ -264,9 +261,14 @@ static void prv_bucp_send_challenge_response(connection_t *conn) {
     // Encode SNAC
     snac_t snac = snac_encode(SNAC_FOODGROUP_ID_BUCP, BUCP_CHALLENGE_RESPONSE, 0, 0);
     
-    // TODO: Fetch actual salt and encode in frame.
-    char challenge[] = "abcdefghijklmnopqrstuvwxyzabcdefabcdefghijklmnopqrstuvwxyzabcdef";
-    uint16_t challenge_size = sizeof(challenge) - 1;
+    // Generate challenge to pass to client
+    if (client_generate_cipher(conn->client) == false) {
+        LOG_ERR("Unable to generate challenge for client.");
+        connection_close(conn);
+        return;
+    }
+    
+    uint16_t challenge_size = strlen(conn->client->challenge);
     uint16_t challenge_size_swapped = htons(challenge_size);
     
     payload_length += sizeof(challenge_size);
@@ -285,12 +287,13 @@ static void prv_bucp_send_challenge_response(connection_t *conn) {
     if (buffer == NULL) {
         LOG_ERR("Unable to allocate buffer.  Out of memory?");
         connection_close(conn);
+        return;
     }
     
     buffer_write(buffer, &flap, sizeof(flap_t));
     buffer_write(buffer, &snac, sizeof(snac_t));
     buffer_write(buffer, &challenge_size_swapped, sizeof(uint16_t));
-    buffer_write(buffer, &challenge, challenge_size);
+    buffer_write(buffer, conn->client->challenge, challenge_size);
     
     if (connection_write(conn, buffer_ptr(buffer), buffer_size) != buffer_size) {
         LOG_ERR("Failed to write to connection.");

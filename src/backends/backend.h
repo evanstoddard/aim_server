@@ -39,6 +39,7 @@ typedef enum {
     BACKEND_RET_BACKEND_ERROR,
     BACKEND_RET_USER_ALREADY_EXISTS,
     BACKEND_RET_EMAIL_ALREADY_EXISTS,
+    BACKEND_RET_OTHER_ERROR,
 } backend_ret_t;
 
 /**
@@ -48,7 +49,7 @@ typedef enum {
 typedef struct backend_api_t {
     backend_ret_t (*fetch_user_info_with_uin)(struct backend_t *backend, char *uin, user_info_t *user_info);
     backend_ret_t (*fetch_user_info_with_email)(struct backend_t *backend, char *email, user_info_t *user_info);
-    backend_ret_t (*create_user)(struct backend_t *backend, char *uin, char *email);
+    backend_ret_t (*create_user)(struct backend_t *backend, char *uin, char *email, char *password);
 } backend_api_t;
 
 /**
@@ -93,9 +94,10 @@ backend_ret_t backend_fetch_user_info_with_email(char *email, user_info_t *user_
  * 
  * @param uin UIN of new user
  * @param email Email of new user
+ * * @param email Password of new user
  * @return backend_ret_t Return status
  */
-backend_ret_t backend_create_user(char *uin, char *email);
+backend_ret_t backend_create_user(char *uin, char *email, char *password);
 
 #ifdef __cplusplus
 }

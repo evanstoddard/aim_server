@@ -29,11 +29,16 @@ set(AIM_SERVER_SOURCES
     memory/buffer.c
     backends/backend.c
     backends/sqlite3/sqlite3_backend.c
+    ${CMAKE_SOURCE_DIR}/vendor/base32/base32.c
+    ${CMAKE_SOURCE_DIR}/vendor/md5-c/md5.c
+    utils/random.c
 )
 
 # Include Paths
 set(AIM_SERVER_INCLUDES
     ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/vendor/
+    ${CMAKE_SOURCE_DIR}/vendor/md5-c
 )
 
 # Libraries

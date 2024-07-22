@@ -13,6 +13,7 @@ set(CREATE_USER_SOURCES
     main.c
     ${CMAKE_SOURCE_DIR}/src/backends/backend.c
     ${CMAKE_SOURCE_DIR}/src/backends/sqlite3/sqlite3_backend.c
+    ${CMAKE_SOURCE_DIR}/vendor/md5-c/md5.c
 )
 
 # Include Paths
@@ -29,6 +30,7 @@ set(CREATE_USER_LIBS
 include_directories(
     ${CREATE_USER_INCLUDES}
     ${SQLite3_INCLUDE_DIRS}
+    ${CMAKE_SOURCE_DIR}/vendor/md5-c
 )
 
 # Create Executable
