@@ -10,15 +10,54 @@
 
 #include "locate.h"
 
+#include "oscar/flap.h"
+#include "oscar/tlv.h"
+
+#include "oscar/flap_decoder.h"
+#include "oscar/snac_decoder.h"
+#include "oscar/tlv_decoder.h"
+#include "oscar/tlv_encoder.h"
+
+#include "oscar/flap_encoder.h"
+#include "oscar/snac_encoder.h"
+
+#include "memory/buffer.h"
+
 #include "logging.h"
 
 /*****************************************************************************
  * Definitions
  *****************************************************************************/
 
+#define LOCATE_MAX_SIGNATURE_LEN    127
+
+/*****************************************************************************
+ * Structs, Unions, Enums, & Typedefs
+ *****************************************************************************/
+
+/**
+ * @brief LOCATE TLV Class tag IDs
+ * 
+ */
+typedef enum {
+    LOCATE_TLV_TAGS_RIGHTS_MAX_SIG_LEN                 = 0x01,
+    LOCATE_TLV_TAGS_RIGHTS_MAX_CAPABILITIES_LEN        = 0x02,
+    LOCATE_TLV_TAGS_RIGHTS_MAX_FIND_BY_EMAIL_LIST      = 0x03,
+    LOCATE_TLV_TAGS_RIGHTS_MAX_CERTS_LEN               = 0x04,
+    LOCATE_TLV_TAGS_RIGHTS_MAX_MAX_SHORT_CAPABILITIES  = 0x05,
+} locate_tlv_tag_t;
+
 /*****************************************************************************
  * Variables
  *****************************************************************************/
+
+/**
+ * @brief List of capability UUIDs supported by server
+ *        (See https://wiki.nina.chat/wiki/Protocols/OSCAR/UUIDs)
+ * 
+ */
+static uint8_t prv_locate_capabilities[][16] = {
+};
 
 /*****************************************************************************
  * Prototypes
@@ -32,20 +71,63 @@
  */
 void prv_locate_handle_rights_query(connection_t *conn, frame_t *frame);
 
+/**
+ * @brief Send Rights Query Reply
+ * 
+ * @param conn Connection
+ */
+void prv_locate_send_rights_reply(connection_t *conn);
+
 /*****************************************************************************
  * Private Functions
  *****************************************************************************/
 
 void prv_locate_handle_rights_query(connection_t *conn, frame_t *frame) {
-    LOG_DEBUG("Rights Query Request Blob: ");
-    printf("\t");
+    prv_locate_send_rights_reply(conn);
+}
+
+void prv_locate_send_rights_reply(connection_t *conn) {
+    uint16_t payload_length =  sizeof(snac_t);
+    size_t buffer_size = sizeof(flap_t);
     
-    uint8_t *blob = frame->snac_blob;
-    for (int i = 0; i < frame->flap.payload_length - sizeof(snac_t); i++) {
-        printf("%02X ", blob[i]);
+    // Encode SNAC
+    snac_t snac = snac_encode(SNAC_FOODGROUP_ID_LOCATE, LOCATE_RIGHTS_REPLY, 0, 0);
+    
+    // Create TLVs
+    tlv_uint16_t sig_len_tlv = tlv_uint16_encode(LOCATE_TLV_TAGS_RIGHTS_MAX_SIG_LEN, LOCATE_MAX_SIGNATURE_LEN);
+    payload_length += sizeof(tlv_uint16_t);
+    
+    tlv_uint16_t capabilities_tlv = tlv_uint16_encode(LOCATE_TLV_TAGS_RIGHTS_MAX_CAPABILITIES_LEN, 0);
+    payload_length += sizeof(tlv_uint16_t);
+    
+    tlv_uint16_t email_count_tlv = tlv_uint16_encode(LOCATE_TLV_TAGS_RIGHTS_MAX_FIND_BY_EMAIL_LIST, 0xA);
+    payload_length += sizeof(tlv_uint16_t);
+    
+    tlv_uint16_t cert_len_tlv = tlv_uint16_encode(LOCATE_TLV_TAGS_RIGHTS_MAX_CERTS_LEN, 0x1000);
+    payload_length += sizeof(tlv_uint16_t);
+    
+    buffer_size += payload_length;
+    
+    // Encode flap
+    uint16_t sequence_number = conn->last_outbound_seq_num + 1;
+    conn->last_outbound_seq_num = sequence_number;
+    flap_t flap = flap_encode(FLAP_FRAME_TYPE_DATA, sequence_number, payload_length);
+    
+    // Create outbound buffer
+    buffer_t buffer = buffer_init();
+    
+    buffer_write(buffer, &flap, sizeof(flap_t));
+    buffer_write(buffer, &snac, sizeof(snac_t));
+    buffer_write(buffer, &sig_len_tlv, sizeof(sig_len_tlv));
+    buffer_write(buffer, &capabilities_tlv, sizeof(capabilities_tlv));
+    buffer_write(buffer, &email_count_tlv, sizeof(email_count_tlv));
+    buffer_write(buffer, &cert_len_tlv, sizeof(cert_len_tlv));
+    
+    if (connection_write(conn, buffer_ptr(buffer), buffer_size) == false) {
+        LOG_ERR("Failed to write to connection.");
     }
     
-    puts("");
+    buffer_deinit(buffer);
 }
 
 /*****************************************************************************
