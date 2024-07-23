@@ -26,6 +26,10 @@ set(AIM_SERVER_SOURCES
     model/client.c
     handlers/bucp.c
     handlers/oservice.c
+    handlers/locate.c
+    handlers/feedbag.c
+    handlers/icbm.c
+    handlers/buddy_handler.c
     memory/buffer.c
     backends/backend.c
     backends/sqlite3/sqlite3_backend.c

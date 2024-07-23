@@ -7,7 +7,7 @@ An (incomplete) AOL Instant Messager server written in C.
   - [Table of Contents](#table-of-contents)
   - [About](#about)
     - [Why in C?](#why-in-c)
-  - [State of the Union:](#state-of-the-union)
+  - [State of the Union](#state-of-the-union)
   - [Building](#building)
   - [Disclaimers](#disclaimers)
 
@@ -28,7 +28,7 @@ A bonus third reason, is that I want this to possibly run on older hardware. I h
 
 There seems to have been a big spike in nostalgia around dial-up lately and I've seen several fantastic videos of people setting up their own homebrew dial-up networks. I can definitely see someone wanting to recreate an AIM server using period correct hardware. Implementing this in C, albiet targetting POSIX only systems at the moment, makes the possibility of that happening more likely.
 
-## State of the Union:
+## State of the Union
 
 Currently, only a portion of the authentication handshaking is happening.
 

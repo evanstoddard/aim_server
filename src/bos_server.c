@@ -23,6 +23,10 @@
 
 #include "handlers/oservice.h"
 #include "handlers/bucp.h"
+#include "handlers/locate.h"
+#include "handlers/feedbag.h"
+#include "handlers/icbm.h"
+#include "handlers/buddy_handler.h"
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -131,19 +135,16 @@ static void prv_bos_server_handle_data_frame(connection_t *conn, frame_t *frame)
     
     switch(frame->snac.foodgroup_id) {
     case SNAC_FOODGROUP_ID_LOCATE:
-        // TODO: Implement SNAC_FOODGROUP_ID_LOCATE handler
-        LOG_WARN("SNAC_FOODGROUP_ID_LOCATE handler not implemented.");
+        locate_handle_frame(conn, frame);
         break;
     case SNAC_FOODGROUP_ID_OSERVICE:
         oservice_handle_frame(conn, frame);
         break;
     case SNAC_FOODGROUP_ID_BUDDY:
-        // TODO: Implement SNAC_FOODGROUP_ID_BUDDY handler
-        LOG_WARN("SNAC_FOODGROUP_ID_BUDDY handler not implemented.");
+        buddy_handler_handle_frame(conn, frame);
         break;
     case SNAC_FOODGROUP_ID_ICBM:
-        // TODO: Implement SNAC_FOODGROUP_ID_ICBM handler
-        LOG_WARN("SNAC_FOODGROUP_ID_ICBM handler not implemented.");
+        icbm_handle_frame(conn, frame);
         break;
     case SNAC_FOODGROUP_ID_ADVERT:
         // TODO: Implement SNAC_FOODGROUP_ID_ADVERT handler
@@ -190,8 +191,7 @@ static void prv_bos_server_handle_data_frame(connection_t *conn, frame_t *frame)
         LOG_WARN("SNAC_FOODGROUP_ID_BART handler not implemented.");
         break;
     case SNAC_FOODGROUP_ID_FEEDBAG:
-        // TODO: Implement SNAC_FOODGROUP_ID_FEEDBAG handler
-        LOG_WARN("SNAC_FOODGROUP_ID_FEEDBAG handler not implemented.");
+        feedback_handle_frame(conn, frame);
         break;
     case SNAC_FOODGROUP_ID_ICQ:
         // TODO: Implement SNAC_FOODGROUP_ID_ICQ handler
