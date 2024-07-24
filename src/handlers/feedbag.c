@@ -10,11 +10,50 @@
 
 #include "feedbag.h"
 
+#include <arpa/inet.h>
+
+#include "oscar/flap.h"
+#include "oscar/tlv.h"
+
+#include "oscar/flap_decoder.h"
+#include "oscar/snac_decoder.h"
+#include "oscar/tlv_decoder.h"
+#include "oscar/tlv_encoder.h"
+
+#include "oscar/flap_encoder.h"
+#include "oscar/snac_encoder.h"
+
+#include "memory/buffer.h"
+
 #include "logging.h"
 
 /*****************************************************************************
  * Definitions
  *****************************************************************************/
+
+/*****************************************************************************
+ * Structs, Unions, Enums, & Typedefs
+ *****************************************************************************/
+
+/**
+ * @brief FEEDBAG TLV Class tag IDs
+ * 
+ */
+typedef enum {
+    FEEDBAG_RIGHTS_MAX_CLASS_ATTRS          = 0x02,
+    FEEDBAG_RIGHTS_MAX_ITEM_ATTRS           = 0x03,
+    FEEDBAG_RIGHTS_MAX_ITEMS_BY_CLASS       = 0x04,
+    FEEDBAG_RIGHTS_MAX_CLIENT_ITEMS         = 0x05,
+    FEEDBAG_RIGHTS_MAX_ITEM_NAME_LEN        = 0x06,
+    FEEDBAG_RIGHTS_MAX_RECENT_BUDDIES       = 0x07,
+    FEEDBAG_RIGHTS_INTERACTION_BUDDIES      = 0x08,
+    FEEDBAG_RIGHTS_INTERACTION_HALF_LIFE    = 0x09,
+    FEEDBAG_RIGHTS_INTERACTION_MAX_SCORE    = 0x0A,
+    FEEDBAG_RIGHTS_MAX_UNKNOWN_0B           = 0x0B,
+    FEEDBAG_RIGHTS_MAX_BUDDIES_PER_GROUP    = 0x0C,
+    FEEDBAG_RIGHTS_MAX_MEGA_BOTS            = 0x0D,
+    FEEDBAG_RIGHTS_MAX_SMART_GROUPS         = 0x0E,
+} feedback_tlv_tag_t;
 
 /*****************************************************************************
  * Variables
@@ -23,6 +62,105 @@
 /*****************************************************************************
  * Prototypes
  *****************************************************************************/
+
+/**
+ * @brief Handler for rights query
+ * 
+ * @param conn Connection
+ * @param frame Frame
+ */
+void feedback_handle_rights_query(connection_t *conn, frame_t *frame);
+
+/**
+ * @brief Send rights reply
+ * 
+ * @param conn Connection
+ */
+void feedback_send_rights_reply(connection_t *conn);
+
+/*****************************************************************************
+ * Private Functions
+ *****************************************************************************/
+
+void feedback_handle_rights_query(connection_t *conn, frame_t *frame) {
+    feedback_send_rights_reply(conn);
+}
+
+void feedback_send_rights_reply(connection_t *conn) {
+    uint16_t payload_length =  sizeof(snac_t);
+    size_t buffer_size = sizeof(flap_t);
+    
+    // Encode SNAC
+    snac_t snac = snac_encode(SNAC_FOODGROUP_ID_FEEDBAG, FEEDBAG_RIGHTS_REPLY, 0, 0);
+    
+    // Create TLVs
+    
+    // Don't love this. Maybe refactor in the future
+    uint16_t max_items_tlv[] = {
+        htons(FEEDBAG_RIGHTS_MAX_ITEMS_BY_CLASS),
+        htons(21),
+        htons(200),
+        htons(61),
+        htons(50),
+        htons(150),
+        htons(0x1),
+        htons(0x1),
+        htons(0x32),
+        htons(0),
+        htons(0),
+        htons(0x3),
+        htons(0),
+        htons(0),
+        htons(0),
+        htons(0x80),
+        htons(0),
+        htons(0),
+        htons(0x0014),
+        htons(0x00C8),
+        htons(0x0001),
+        htons(0x0000),
+        htons(0x0001),
+        htons(0x0000),
+        htons(0x0002),
+        htons(0x0002),
+        htons(0x00FE),
+        htons(0x0003),
+        htons(0x0002),
+        htons(0x01FC),
+    };
+    
+    tlv_uint16_t max_client_items_tlv = tlv_uint16_encode(FEEDBAG_RIGHTS_MAX_CLIENT_ITEMS, 0);
+    payload_length += sizeof(tlv_uint16_t);
+    
+    tlv_uint16_t max_item_name_len = tlv_uint16_encode(FEEDBAG_RIGHTS_MAX_ITEM_NAME_LEN, 0x61);
+    payload_length += sizeof(tlv_uint16_t);
+    
+    tlv_uint16_t max_recent_buddies_len = tlv_uint16_encode(FEEDBAG_RIGHTS_MAX_RECENT_BUDDIES, 0xA);
+    payload_length += sizeof(tlv_uint16_t);
+    
+    buffer_size += payload_length;
+    
+    // Encode flap
+    uint16_t sequence_number = conn->last_outbound_seq_num + 1;
+    conn->last_outbound_seq_num = sequence_number;
+    flap_t flap = flap_encode(FLAP_FRAME_TYPE_DATA, sequence_number, payload_length);
+    
+    // Create outbound buffer
+    buffer_t buffer = buffer_init();
+    
+    buffer_write(buffer, &flap, sizeof(flap_t));
+    buffer_write(buffer, &snac, sizeof(snac_t));
+    buffer_write(buffer, &max_client_items_tlv, sizeof(max_client_items_tlv));
+    buffer_write(buffer, &max_item_name_len, sizeof(max_item_name_len));
+    buffer_write(buffer, &max_recent_buddies_len, sizeof(max_recent_buddies_len));
+    
+    if (connection_write(conn, buffer_ptr(buffer), buffer_size) == false) {
+        LOG_ERR("Failed to write to connection.");
+    }
+    
+    buffer_deinit(buffer);
+
+}
 
 /*****************************************************************************
  * Functions
@@ -35,8 +173,7 @@ void feedback_handle_frame(connection_t *conn, frame_t *frame) {
         LOG_INFO("FEEDBAG_ERR handler not implemented.");
         break;
     case FEEDBAG_RIGHTS_QUERY:
-        // TODO: Implement FEEDBAG_RIGHTS_QUERY
-        LOG_INFO("FEEDBAG_RIGHTS_QUERY handler not implemented.");
+        feedback_handle_rights_query(conn, frame);
         break;
     case FEEDBAG_RIGHTS_REPLY:
         // TODO: Implement FEEDBAG_RIGHTS_REPLY
